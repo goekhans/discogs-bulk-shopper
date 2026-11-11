@@ -17,3 +17,7 @@ vite.config.ts.timestamp-*
 
 .jumbo/
 .jumbo/jumbo.db
+
+# Playwright
+test-results/
+playwright-report/
