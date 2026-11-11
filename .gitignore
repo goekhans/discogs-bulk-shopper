@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.cache/
+.svelte-kit/
+build/
+profile/
+.DS_Store
