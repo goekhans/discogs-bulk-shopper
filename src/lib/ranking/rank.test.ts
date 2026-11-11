@@ -19,6 +19,7 @@ describe('rankSellers', () => {
       sellerRating: 99.5,
       sellerRatingCount: 1003,
       itemCount: 5,
+      offeredCount: 5,
       itemsTotal: { amount: 350, currency: 'DKK' },
       shippingEstimate: { amount: 40, currency: 'DKK' },
       shippingUnknown: true,
@@ -151,6 +152,45 @@ describe('rankSellers', () => {
     expect(names({ minItems: 6 })).toEqual([]);
   });
 
+  it('trims each seller to the budget before minItems is applied', () => {
+    // At 200 DKK seller_one keeps 2 of 4 items (40 + 60 + 50 shipping) and seller_three 3 of 5
+    // (30 + 50 + 60 + 40 shipping); two and four fit whole.
+    const result = rank({ maxTotal: 200, ranking: 'most-items' });
+    expect(result.results.map((r) => [r.sellerName, r.itemCount, r.offeredCount])).toEqual([
+      ['seller_three', 3, 5],
+      ['seller_one', 2, 4],
+      ['seller_two', 2, 2],
+      ['seller_four', 2, 2]
+    ]);
+    expect(result.results[0].total.amount).toBe(180);
+    expect(result.results[1].total.amount).toBe(150);
+    // minItems counts the trimmed order: only seller_three still has 3 items.
+    expect(names({ maxTotal: 200, minItems: 3 })).toEqual(['seller_three']);
+    expect(names({ maxTotal: null, minItems: 3 })).toEqual(['seller_three', 'seller_one']);
+  });
+
+  it('drops a seller whose required picks alone exceed the budget', () => {
+    // Release 1 costs 150, 120 and 160 landed at one, two and three: none fits in 100.
+    expect(names({ requiredGroups: [[1]], maxTotal: 100, minItems: 1 })).toEqual([]);
+    // At 140 only seller_two's pick (80 + 40) fits, and its other item does not fit beside it.
+    const kept = rank({ requiredGroups: [[1]], maxTotal: 140, minItems: 1 }).results;
+    expect(kept.map((r) => r.sellerName)).toEqual(['seller_two']);
+    expect(kept[0].items.map((i) => i.listing.releaseId)).toEqual([1]);
+    expect(kept[0].offeredCount).toBe(2);
+    expect(kept[0].total.amount).toBe(120);
+    expect(names({ requiredGroups: [[1]], maxTotal: 140 })).toEqual([]);
+  });
+
+  it('leaves the cheapest-anywhere baseline untrimmed by the budget', () => {
+    // seller_three's 180 DKK order of releases 5, 4, 3 would cost 30 + 90 + 100 separately,
+    // with release 5's cheapest price still coming from seller_three's own untrimmed listing.
+    const three = rank({ maxTotal: 200, ranking: 'savings' }).results.find(
+      (r) => r.sellerName === 'seller_three'
+    )!;
+    expect(three.items.map((i) => i.listing.releaseId).sort()).toEqual([3, 4, 5]);
+    expect(three.savings.amount).toBe(40);
+  });
+
   it('keeps a dropped seller in the cheapest-anywhere baseline', () => {
     // seller_five (1 item, dropped) still sets release 6's cheapest price to 50.
     const four = rank({ ranking: 'savings' }).results.find((r) => r.sellerName === 'seller_four')!;
@@ -172,10 +212,20 @@ describe('rankSellers', () => {
   });
 
   it('rejects invalid params with a RankingError', () => {
-    for (const bad of [{ page: 0 }, { page: 1.5 }, { pageSize: 0 }, { minItems: 0 }]) {
+    for (const bad of [
+      { page: 0 },
+      { page: 1.5 },
+      { pageSize: 0 },
+      { minItems: 0 },
+      { maxTotal: 0 },
+      { maxTotal: -1 },
+      { maxTotal: Infinity },
+      { maxTotal: NaN }
+    ]) {
       expect(() => rank(bad)).toThrow(RankingError);
     }
     expect(() => rank({ currency: '' })).toThrow(/currency/);
+    expect(() => rank({ maxTotal: -1 })).toThrow(/maxTotal/);
     expect(() => rank({ ranking: 'random' as SearchParams['ranking'] })).toThrow(/ranking/);
     try {
       rank({ pageSize: -1 });

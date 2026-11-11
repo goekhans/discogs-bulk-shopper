@@ -9,6 +9,8 @@ export interface SellerGroup {
   sellerRatingCount: number | null;
   sellerCountry: string;
   items: ChosenItem[];
+  /** Items the seller offered before the budget trimmed `items`; equals items.length until then. */
+  offeredCount: number;
 }
 
 /** Price plus shipping in the result currency; a missing shipping quote counts as 0. */
@@ -36,7 +38,7 @@ export function toChosenItem(
  * True when `candidate` should replace `current` as the seller's pick for a release: lower
  * landed cost, then lower price, then lower listing id.
  */
-function isCheaper(candidate: ChosenItem, current: ChosenItem): boolean {
+export function isCheaper(candidate: ChosenItem, current: ChosenItem): boolean {
   const byLanded = landedCost(candidate) - landedCost(current);
   if (byLanded !== 0) return byLanded < 0;
   const byPrice = candidate.price.amount - current.price.amount;
@@ -66,7 +68,8 @@ export function groupChosenItems(items: Iterable<ChosenItem>): Map<number, Selle
           sellerRating: listing.sellerRating,
           sellerRatingCount: listing.sellerRatingCount,
           sellerCountry: listing.sellerCountry,
-          items: []
+          items: [],
+          offeredCount: 0
         },
         byRelease: new Map()
       };
@@ -79,6 +82,7 @@ export function groupChosenItems(items: Iterable<ChosenItem>): Map<number, Selle
   const groups = new Map<number, SellerGroup>();
   for (const [sellerId, { group, byRelease }] of picks) {
     group.items = [...byRelease.values()];
+    group.offeredCount = group.items.length;
     groups.set(sellerId, group);
   }
   return groups;

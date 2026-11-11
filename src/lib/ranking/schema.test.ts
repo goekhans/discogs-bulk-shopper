@@ -46,6 +46,16 @@ describe('searchParamsSchema', () => {
     expect('requiredReleaseIds' in parsed).toBe(false);
   });
 
+  it('accepts a positive finite maxTotal or null, defaulting to null', () => {
+    expect(searchParamsSchema.parse({}).maxTotal).toBeNull();
+    expect(searchParamsSchema.parse({ maxTotal: null }).maxTotal).toBeNull();
+    expect(searchParamsSchema.parse({ maxTotal: 800 }).maxTotal).toBe(800);
+    expect(searchParamsSchema.parse({ maxTotal: 12.5 }).maxTotal).toBe(12.5);
+    for (const bad of [0, -1, '800', Infinity, NaN]) {
+      expect(searchParamsSchema.safeParse({ maxTotal: bad }).success).toBe(false);
+    }
+  });
+
   it('bounds page, pageSize and minItems', () => {
     expect(searchParamsSchema.safeParse({ page: 0 }).success).toBe(false);
     expect(searchParamsSchema.safeParse({ pageSize: 101 }).success).toBe(false);

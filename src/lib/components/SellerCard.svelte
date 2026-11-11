@@ -47,8 +47,12 @@
       <p class="style-caption meta">{rating} · ships from {result.sellerCountry}</p>
     </div>
     <p class="count style-body-strong">
-      {result.itemCount}
-      {result.itemCount === 1 ? 'item' : 'items'}
+      {#if result.offeredCount > result.itemCount}
+        {result.itemCount} of {result.offeredCount} items within budget
+      {:else}
+        {result.itemCount}
+        {result.itemCount === 1 ? 'item' : 'items'}
+      {/if}
     </p>
   </header>
 
@@ -196,7 +200,7 @@
   }
 
   .count {
-    white-space: nowrap;
+    text-align: right;
   }
 
   .figures {

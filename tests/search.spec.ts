@@ -70,6 +70,7 @@ function seller(index: number, currency: string) {
     sellerCountry: 'Germany',
     items,
     itemCount: items.length,
+    offeredCount: items.length,
     itemsTotal: { amount: itemsTotal, currency },
     shippingEstimate: { amount: shipping, currency },
     shippingUnknown: false,
@@ -112,12 +113,15 @@ async function mockApi(page: Page) {
       page: number;
       pageSize: number;
       currency: string;
+      maxTotal: number | null;
     };
     const start = (body.page - 1) * body.pageSize;
     const results = Array.from(
       { length: Math.max(0, Math.min(body.pageSize, TOTAL_SELLERS - start)) },
       (_, i) => seller(start + i, body.currency)
     );
+    // With a budget the first seller reads as trimmed from a larger offer.
+    if (body.maxTotal !== null && results.length > 0) results[0].offeredCount = 7;
     await route.fulfill({
       json: {
         results,
@@ -169,6 +173,30 @@ test('searches, renders 10 cards and loads 10 more', async ({ page }) => {
   await expect(cards.nth(19)).toContainText('seller-20');
   await expect(results).toContainText('Showing 20 of 25 sellers');
   await expect(page.getByRole('button', { name: 'Load 5 more' })).toBeVisible();
+});
+
+test('a max total is sent as maxTotal and the card shows the trimmed count', async ({ page }) => {
+  const budget = page.getByLabel('Max total (DKK)');
+  await expect(budget).toHaveValue('');
+  await budget.fill('800');
+  await budget.blur();
+
+  const request = page.waitForRequest('**/api/search');
+  await page.getByRole('button', { name: 'Search' }).click();
+  const body = (await request).postDataJSON() as { maxTotal: number | null };
+  expect(body.maxTotal).toBe(800);
+
+  const cards = page.getByRole('region', { name: 'Seller results' }).getByRole('article');
+  await expect(cards.first()).toContainText('3 of 7 items within budget');
+  await expect(cards.nth(1)).toContainText('3 items');
+  await expect(cards.nth(1)).not.toContainText('within budget');
+
+  // Clearing the field sends null again.
+  await budget.fill('');
+  await budget.blur();
+  const cleared = page.waitForRequest('**/api/search');
+  await page.getByRole('button', { name: 'Search' }).click();
+  expect(((await cleared).postDataJSON() as { maxTotal: number | null }).maxTotal).toBeNull();
 });
 
 test('the must-have autocomplete adds a chip', async ({ page }) => {

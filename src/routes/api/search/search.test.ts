@@ -97,6 +97,40 @@ describe('runSearch', () => {
     );
   });
 
+  it('passes maxTotal through to the ranking', async () => {
+    const rank = vi.fn(() => ({ results: [], total: 0, page: 1, pageSize: 10 }));
+    await runSearch({ maxTotal: 800 }, deps({ rank }));
+    expect(rank).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ maxTotal: 800 })
+    );
+  });
+
+  it('ranks within the budget, reporting the untrimmed count per seller', async () => {
+    const outcome = await runSearch({ maxTotal: 200, ranking: 'most-items' }, deps());
+    expect(outcome.status).toBe(200);
+    if (outcome.status !== 200) return;
+    expect(outcome.body.results.map((r) => [r.sellerName, r.itemCount, r.offeredCount])).toEqual([
+      ['seller_three', 3, 5],
+      ['seller_one', 2, 4],
+      ['seller_two', 2, 2],
+      ['seller_four', 2, 2]
+    ]);
+    expect(outcome.body.results.every((r) => r.total.amount <= 200)).toBe(true);
+  });
+
+  it('rejects a non-positive maxTotal with 400 invalid-params', async () => {
+    const outcome = await runSearch({ maxTotal: -1 }, deps());
+    expect(outcome.status).toBe(400);
+    if (outcome.status !== 400 || !('issues' in outcome.body)) {
+      throw new Error('expected invalid-params with issues');
+    }
+    expect(outcome.body.error).toBe('invalid-params');
+    expect(Object.keys(outcome.body.issues.fieldErrors)).toEqual(['maxTotal']);
+  });
+
   it('returns 400 unknown-currency when the rates lookup fails', async () => {
     const outcome = await runSearch({ currency: 'xyz' }, deps());
     expect(outcome.status).toBe(400);

@@ -17,6 +17,11 @@ export interface SearchParams {
   ranking: RankingMode;
   /** Sellers offering fewer wantlist items than this are dropped (at least 1). */
   minItems: number;
+  /**
+   * Per-seller budget in `currency` for items plus shipping, or null for no limit. Each seller's
+   * order is trimmed to the required picks plus the cheapest other items that fit.
+   */
+  maxTotal: number | null;
   /** 1-based. */
   page: number;
   pageSize: number;
@@ -30,6 +35,7 @@ export const DEFAULT_SEARCH_PARAMS: SearchParams = {
   currency: 'DKK',
   ranking: 'bang-for-buck',
   minItems: 2,
+  maxTotal: null,
   page: 1,
   pageSize: 10
 };
@@ -60,6 +66,8 @@ export interface SellerResult {
   sellerCountry: string;
   items: ChosenItem[];
   itemCount: number;
+  /** Wantlist items the seller offered before the budget trimmed them; equals itemCount otherwise. */
+  offeredCount: number;
   itemsTotal: Money;
   /** The single highest shipping quote among the items: a bulk order ships once. */
   shippingEstimate: Money;

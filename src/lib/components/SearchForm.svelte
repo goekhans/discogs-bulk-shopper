@@ -27,8 +27,8 @@
 
   /**
    * Ranking and currency only change how the same sellers are ordered and priced, so after a
-   * completed search they re-run it on change. Filters (titles, grades, minimum items) wait for
-   * the Search button, since they are usually adjusted a few at a time.
+   * completed search they re-run it on change. Filters (titles, grades, minimum items, budget)
+   * wait for the Search button, since they are usually adjusted a few at a time.
    */
   function reorder(patch: { ranking?: RankingMode; currency?: string }) {
     search.setParams(patch);
@@ -81,6 +81,15 @@
       value={params.minItems}
       hint="Sellers with fewer wantlist items are dropped."
       onchange={(value) => search.setParams({ minItems: value })}
+    />
+    <NumberInput
+      label={`Max total (${params.currency})`}
+      min={1}
+      step={1}
+      allowEmpty
+      value={params.maxTotal}
+      hint="Per seller, items plus shipping. Empty means no limit."
+      onchange={(value) => search.setParams({ maxTotal: value })}
     />
     <Select
       label="Currency"
@@ -136,7 +145,7 @@
     }
 
     @include breakpoint('large') {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
   }
 

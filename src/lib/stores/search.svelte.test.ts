@@ -12,6 +12,7 @@ function seller(id: number): SellerResult {
     sellerCountry: 'Denmark',
     items: [],
     itemCount: 2,
+    offeredCount: 2,
     itemsTotal: money,
     shippingEstimate: money,
     shippingUnknown: false,
@@ -272,6 +273,27 @@ describe('SearchStore', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('persists maxTotal as a number or null and restores it', () => {
+    const storage = memoryStorage();
+    const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage });
+    store.setParams({ maxTotal: 800 });
+    expect(JSON.parse(storage.data.get(SEARCH_STORAGE_KEY)!).maxTotal).toBe(800);
+    expect(new SearchStore({ fetch: pagedFetch(0).fetch, storage }).params.maxTotal).toBe(800);
+
+    store.setParams({ maxTotal: null });
+    expect(JSON.parse(storage.data.get(SEARCH_STORAGE_KEY)!).maxTotal).toBeNull();
+    expect(new SearchStore({ fetch: pagedFetch(0).fetch, storage }).params.maxTotal).toBeNull();
+  });
+
+  it('restores params stored before maxTotal existed with no budget', () => {
+    const storage = memoryStorage({
+      [SEARCH_STORAGE_KEY]: JSON.stringify({ currency: 'EUR', minItems: 3 })
+    });
+    const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage });
+    expect(store.params).toEqual({ ...DEFAULT_SEARCH_PARAMS, currency: 'EUR', minItems: 3 });
+    expect(store.params.maxTotal).toBeNull();
   });
 
   it('restores params stored before groups existed with an empty requiredGroups', () => {

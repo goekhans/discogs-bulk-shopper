@@ -1,4 +1,5 @@
 import type { Listing, WantlistItem } from '#lib/domain/types.js';
+import { applyBudget } from './budget.js';
 import { cheapestAnywhere, estimateSellerTotal, savingsFor } from './estimate.js';
 import { applyFilters } from './filter.js';
 import {
@@ -43,6 +44,19 @@ export function validateSearchParams(params: SearchParams): void {
   if (!isPositiveInteger(params.minItems)) {
     throw new RankingError(
       `minItems must be an integer >= 1, got ${params.minItems}`,
+      'invalid-params'
+    );
+  }
+  if (
+    params.maxTotal !== null &&
+    !(
+      typeof params.maxTotal === 'number' &&
+      Number.isFinite(params.maxTotal) &&
+      params.maxTotal > 0
+    )
+  ) {
+    throw new RankingError(
+      `maxTotal must be a positive number or null, got ${params.maxTotal}`,
       'invalid-params'
     );
   }
@@ -95,6 +109,7 @@ function toSellerResult(
     sellerCountry: group.sellerCountry,
     items,
     itemCount: items.length,
+    offeredCount: group.offeredCount,
     itemsTotal: money(estimate.itemsTotal),
     shippingEstimate: money(estimate.shippingEstimate),
     shippingUnknown: estimate.shippingUnknown,
@@ -133,7 +148,8 @@ export function rankSellers(
   }
 
   const cheapestByRelease = cheapestAnywhere(byRelease);
-  const groups = applySellerConstraints(groupChosenItems(converted), params);
+  // Budget before constraints, so minItems and the required groups judge the trimmed order.
+  const groups = applySellerConstraints(applyBudget(groupChosenItems(converted), params), params);
 
   const ranked: SellerResult[] = [];
   for (const group of groups.values()) {

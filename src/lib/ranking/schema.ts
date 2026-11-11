@@ -57,6 +57,7 @@ export const searchParamsSchema = z.object({
     .default(DEFAULT_SEARCH_PARAMS.currency),
   ranking: z.enum(RANKING_MODES).default(DEFAULT_SEARCH_PARAMS.ranking),
   minItems: z.number().int().min(1).default(DEFAULT_SEARCH_PARAMS.minItems),
+  maxTotal: z.number().positive().finite().nullable().default(null),
   page: z.number().int().min(1).default(DEFAULT_SEARCH_PARAMS.page),
   pageSize: z.number().int().min(1).max(100).default(DEFAULT_SEARCH_PARAMS.pageSize)
 });

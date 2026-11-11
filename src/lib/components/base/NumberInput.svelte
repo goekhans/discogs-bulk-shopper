@@ -1,17 +1,29 @@
-<script lang="ts">
+<script lang="ts" generics="Empty extends boolean = false">
+  /**
+   * A numeric field that commits on blur, Enter or the spinner. By default the committed value
+   * is always a number: an empty or unparsable field is clamped to `min` (or 0). With
+   * `allowEmpty` the field may instead be cleared, and then `value` and `onchange` carry `null`
+   * for "no value"; `min`/`max` still clamp any number that is entered. The `Empty` generic is
+   * inferred from `allowEmpty`, so a caller without it keeps a plain `number` on both sides.
+   */
+  type Value = Empty extends true ? number | null : number;
+
   interface Props {
     label: string;
-    value: number;
+    /** Lets the field be cleared; `value` and `onchange` then carry null for "no value". */
+    allowEmpty?: Empty;
+    value: Value;
     min?: number;
     max?: number;
+    /** Entered values are rounded to a multiple of this (decimals allowed). */
     step?: number;
     id?: string;
     name?: string;
     disabled?: boolean;
     /** Shown under the input. */
     hint?: string;
-    /** Called with the clamped value when the field is committed (blur, Enter or spinner). */
-    onchange?: (value: number) => void;
+    /** Called with the rounded and clamped value (or null for a cleared field) on commit. */
+    onchange?: (value: Value) => void;
   }
 
   const uid = $props.id();
@@ -26,16 +38,30 @@
     name,
     disabled = false,
     hint,
+    allowEmpty,
     onchange
   }: Props = $props();
 
-  /** Clamps on commit so a cleared or out-of-range field never leaves an invalid number behind. */
-  function commit() {
-    let next = Number.isFinite(value) ? Math.round(value) : (min ?? 0);
+  const decimals = $derived(Number.isInteger(step) ? 0 : (String(step).split('.')[1] ?? '').length);
+
+  /** Rounds to the nearest step, then clamps, so a committed number is always on the grid. */
+  function normalise(input: number): number {
+    let next = step > 0 ? Number((Math.round(input / step) * step).toFixed(decimals)) : input;
     if (min !== undefined) next = Math.max(min, next);
     if (max !== undefined) next = Math.min(max, next);
-    value = next;
-    onchange?.(next);
+    return next;
+  }
+
+  /**
+   * Svelte binds an empty number input as null. Without allowEmpty that (or NaN) falls back to
+   * min, so the field never leaves an invalid number behind; with it, the field commits null.
+   * The casts are safe: null is only committed when allowEmpty (Empty = true) is set.
+   */
+  function commit() {
+    const entered = typeof value === 'number' && Number.isFinite(value) ? value : null;
+    const next = entered === null && allowEmpty === true ? null : normalise(entered ?? min ?? 0);
+    value = next as Value;
+    onchange?.(next as Value);
   }
 </script>
 
@@ -49,7 +75,7 @@
     {step}
     {disabled}
     type="number"
-    inputmode="numeric"
+    inputmode={decimals > 0 ? 'decimal' : 'numeric'}
     class="input tabular-nums"
     bind:value
     onchange={commit}

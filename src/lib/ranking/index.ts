@@ -11,6 +11,7 @@ export {
 export { convertMoney, round2 } from './money.js';
 export { applyFilters } from './filter.js';
 export { applySellerConstraints, groupBySeller, landedCost, type SellerGroup } from './group.js';
+export { applyBudget } from './budget.js';
 export {
   cheapestAnywhere,
   estimateSellerTotal,

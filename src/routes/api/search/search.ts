@@ -67,8 +67,9 @@ function isConfigError(err: unknown): err is Error {
  *
  * Body (every field optional, see searchRequestSchema): `requiredGroups: number[][]` any-of
  * sets of release ids a seller must cover one of each; `excludedReleaseIds: number[]`;
- * `minMediaGrade`, `minSleeveGrade`; `currency`; `ranking`; `minItems`; `page`; `pageSize`;
- * `shipTo`. Unknown keys, including the retired `requiredReleaseIds`, are a 400 invalid-params.
+ * `minMediaGrade`, `minSleeveGrade`; `currency`; `ranking`; `minItems`; `maxTotal` (a per-seller
+ * budget in `currency` for items plus shipping, or null for none); `page`; `pageSize`; `shipTo`.
+ * Unknown keys, including the retired `requiredReleaseIds`, are a 400 invalid-params.
  */
 export async function runSearch(
   body: unknown,
