@@ -66,6 +66,7 @@ describe('mapWant', () => {
   it('maps basic_information into a WantlistItem', () => {
     expect(mapWant((page1 as WantsPage).wants[0])).toEqual({
       releaseId: 1810,
+      masterId: 7059,
       title: 'Autobahn',
       artist: 'Kraftwerk',
       year: 1974,
@@ -75,9 +76,10 @@ describe('mapWant', () => {
     });
   });
 
-  it('joins artists, strips disambiguators, and nulls year 0 and empty thumb', () => {
+  it('joins artists, strips disambiguators, and nulls master_id 0, year 0 and empty thumb', () => {
     expect(mapWant((page1 as WantsPage).wants[1])).toEqual({
       releaseId: 2404,
+      masterId: null,
       title: 'Piñata',
       artist: 'Freddie Gibbs, Madlib',
       year: null,
@@ -93,7 +95,13 @@ describe('mapWant', () => {
       date_added: '2024-01-01T00:00:00-00:00',
       basic_information: { id: 1, title: 'Untitled' }
     });
-    expect(item).toMatchObject({ artist: '', format: '', year: null, thumbUrl: null });
+    expect(item).toMatchObject({
+      artist: '',
+      format: '',
+      year: null,
+      thumbUrl: null,
+      masterId: null
+    });
   });
 });
 

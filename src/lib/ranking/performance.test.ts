@@ -31,6 +31,7 @@ function buildData(seed = 42): { wantlist: WantlistItem[]; listings: Listing[] }
 
   const wantlist: WantlistItem[] = Array.from({ length: WANTLIST_SIZE }, (_, i) => ({
     releaseId: 100_000 + i,
+    masterId: null,
     title: `Release ${i}`,
     artist: `Artist ${i % 97}`,
     year: 1960 + (i % 60),

@@ -3,8 +3,11 @@ import type { Grade, Listing, Money, WantlistItem } from '#lib/domain/types.js';
 export type RankingMode = 'bang-for-buck' | 'most-items' | 'cheapest-total' | 'savings';
 
 export interface SearchParams {
-  /** Releases a seller must offer to be ranked at all. */
-  requiredReleaseIds: number[];
+  /**
+   * Any-of sets: a seller is ranked only if, for every group, it offers at least one of that
+   * group's releases. A group usually holds the pressings of one master release.
+   */
+  requiredGroups: number[][];
   /** Releases that are never picked from any seller. */
   excludedReleaseIds: number[];
   minMediaGrade: Grade | null;
@@ -20,7 +23,7 @@ export interface SearchParams {
 }
 
 export const DEFAULT_SEARCH_PARAMS: SearchParams = {
-  requiredReleaseIds: [],
+  requiredGroups: [],
   excludedReleaseIds: [],
   minMediaGrade: null,
   minSleeveGrade: null,

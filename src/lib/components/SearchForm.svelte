@@ -10,6 +10,7 @@
     GRADE_OPTIONS,
     RANKING_OPTIONS,
     gradeToValue,
+    groupWantlist,
     valueToGrade
   } from './options.js';
 
@@ -21,6 +22,8 @@
   let { search, data }: Props = $props();
 
   const params = $derived(search.params);
+  /** Grouped once per wantlist so both inputs share the master groups. */
+  const groups = $derived(groupWantlist(data.wantlistItems));
 
   /**
    * Ranking and currency only change how the same sellers are ordered and priced, so after a
@@ -42,18 +45,18 @@
   <div class="titles">
     <TagInput
       label="Must have"
-      items={data.wantlistItems}
-      selectedIds={params.requiredReleaseIds}
-      onadd={(id) => search.addRequired(id)}
-      onremove={(id) => search.removeRequired(id)}
-      hint="Only sellers offering every one of these are ranked."
+      {groups}
+      selectedIds={params.requiredGroups.flat()}
+      onadd={(ids, allIds) => search.addRequired(ids, allIds)}
+      onremove={(ids) => search.removeRequired(ids)}
+      hint="Sellers must offer every one of these (any version you picked)."
     />
     <TagInput
       label="Leave out"
-      items={data.wantlistItems}
+      {groups}
       selectedIds={params.excludedReleaseIds}
-      onadd={(id) => search.addExcluded(id)}
-      onremove={(id) => search.removeExcluded(id)}
+      onadd={(ids) => search.addExcluded(ids)}
+      onremove={(ids) => search.removeExcluded(ids)}
       hint="Never picked from any seller."
     />
   </div>

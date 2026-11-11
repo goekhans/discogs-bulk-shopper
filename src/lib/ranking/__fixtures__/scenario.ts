@@ -12,6 +12,7 @@ export const rates: RateTable = {
 
 export const wantlist: WantlistItem[] = [1, 2, 3, 4, 5, 6].map((releaseId) => ({
   releaseId,
+  masterId: null,
   title: `Release ${releaseId}`,
   artist: `Artist ${releaseId}`,
   year: 1990 + releaseId,

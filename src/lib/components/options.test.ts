@@ -5,14 +5,17 @@ import {
   CURRENCY_OPTIONS,
   GRADE_OPTIONS,
   RANKING_OPTIONS,
-  filterWantlist,
+  filterWantlistGroups,
   gradeToValue,
+  groupWantlist,
   valueToGrade,
+  variantLabel,
   wantlistLabel
 } from './options';
 
 const item = (overrides: Partial<WantlistItem>): WantlistItem => ({
   releaseId: 1,
+  masterId: null,
   title: 'Title',
   artist: 'Artist',
   year: 2000,
@@ -68,21 +71,105 @@ describe('wantlistLabel', () => {
   });
 });
 
-describe('filterWantlist', () => {
-  const items = [
-    item({ releaseId: 1, artist: 'Autechre', title: 'Incunabula' }),
-    item({ releaseId: 2, artist: 'Boards of Canada', title: 'Geogaddi' }),
-    item({ releaseId: 3, artist: 'Aphex Twin', title: 'Selected Ambient Works' })
-  ];
-
-  it('matches artist or title case-insensitively', () => {
-    expect(filterWantlist(items, 'AUT').map((i) => i.releaseId)).toEqual([1]);
-    expect(filterWantlist(items, 'ambient').map((i) => i.releaseId)).toEqual([3]);
+describe('variantLabel', () => {
+  it('joins year and format, omitting missing parts', () => {
+    expect(variantLabel(item({}))).toBe('2000 · Vinyl, LP');
+    expect(variantLabel(item({ year: null }))).toBe('Vinyl, LP');
+    expect(variantLabel(item({ format: '' }))).toBe('2000');
   });
 
-  it('returns everything for an empty query, minus excluded ids, up to the limit', () => {
-    expect(filterWantlist(items, '  ').map((i) => i.releaseId)).toEqual([1, 2, 3]);
-    expect(filterWantlist(items, '', [2]).map((i) => i.releaseId)).toEqual([1, 3]);
-    expect(filterWantlist(items, '', [], 2)).toHaveLength(2);
+  it('falls back to the release id when both are missing', () => {
+    expect(variantLabel(item({ releaseId: 42, year: null, format: '' }))).toBe('Release #42');
+  });
+});
+
+/** Fabricated wantlist: one master with three pressings, two masterless items. */
+const items = [
+  item({
+    releaseId: 11,
+    masterId: 900,
+    artist: 'Alpha Band',
+    title: 'Record One (Reissue)',
+    year: 2015,
+    format: 'Vinyl, LP, Reissue',
+    addedAt: '2026-02-01T00:00:00Z'
+  }),
+  item({ releaseId: 2, masterId: null, artist: 'Beta Band', title: 'Record Two' }),
+  item({
+    releaseId: 10,
+    masterId: 900,
+    artist: 'Alpha Band',
+    title: 'Record One',
+    year: 1990,
+    format: 'Vinyl, LP',
+    addedAt: '2026-01-01T00:00:00Z'
+  }),
+  item({
+    releaseId: 12,
+    masterId: 900,
+    artist: 'Alpha Band',
+    title: 'Record One (Promo)',
+    year: null,
+    format: 'CD',
+    addedAt: '2026-03-01T00:00:00Z'
+  }),
+  item({ releaseId: 3, masterId: null, artist: 'Gamma Band', title: 'Record Three' })
+];
+
+describe('groupWantlist', () => {
+  const groups = groupWantlist(items);
+
+  it('groups by master in order of first appearance and keys masterless items by release', () => {
+    expect(groups.map((g) => [g.key, g.masterId])).toEqual([
+      [900, 900],
+      [2, null],
+      [3, null]
+    ]);
+    expect(groups[1].variants.map((v) => v.releaseId)).toEqual([2]);
+  });
+
+  it('labels a group from the earliest-added variant', () => {
+    expect(groups[0].label).toBe('Alpha Band – Record One');
+    expect(groups[1].label).toBe('Beta Band – Record Two');
+  });
+
+  it('sorts variants by year with unknown years last, then by format', () => {
+    expect(groups[0].variants.map((v) => v.releaseId)).toEqual([10, 11, 12]);
+    const sameYear = groupWantlist([
+      item({ releaseId: 1, masterId: 5, year: 2000, format: 'Vinyl, LP' }),
+      item({ releaseId: 2, masterId: 5, year: 2000, format: 'CD' })
+    ]);
+    expect(sameYear[0].variants.map((v) => v.releaseId)).toEqual([2, 1]);
+  });
+
+  it('returns no groups for an empty wantlist', () => {
+    expect(groupWantlist([])).toEqual([]);
+  });
+});
+
+describe('filterWantlistGroups', () => {
+  const groups = groupWantlist(items);
+  const keys = (result: ReturnType<typeof filterWantlistGroups>) => result.map((g) => g.key);
+
+  it('matches the artist or title of any variant, case-insensitively', () => {
+    expect(keys(filterWantlistGroups(groups, 'BETA'))).toEqual([2]);
+    expect(keys(filterWantlistGroups(groups, 'promo'))).toEqual([900]);
+    expect(keys(filterWantlistGroups(groups, 'record'))).toEqual([900, 2, 3]);
+  });
+
+  it('returns everything for an empty query, up to the limit', () => {
+    expect(keys(filterWantlistGroups(groups, '  '))).toEqual([900, 2, 3]);
+    expect(filterWantlistGroups(groups, '', [], 2)).toHaveLength(2);
+  });
+
+  it('hides excluded variants and drops groups left without any', () => {
+    const partial = filterWantlistGroups(groups, '', [10, 2]);
+    expect(keys(partial)).toEqual([900, 3]);
+    expect(partial[0].variants.map((v) => v.releaseId)).toEqual([11, 12]);
+    expect(keys(filterWantlistGroups(groups, '', [10, 11, 12]))).toEqual([2, 3]);
+  });
+
+  it('returns the same group object when nothing is excluded from it', () => {
+    expect(filterWantlistGroups(groups, '')[0]).toBe(groups[0]);
   });
 });

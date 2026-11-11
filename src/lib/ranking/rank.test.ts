@@ -105,8 +105,8 @@ describe('rankSellers', () => {
   });
 
   it('drops sellers that lack a required release', () => {
-    expect(names({ requiredReleaseIds: [3] })).toEqual(['seller_three', 'seller_one']);
-    expect(names({ requiredReleaseIds: [6] })).toEqual(['seller_four']);
+    expect(names({ requiredGroups: [[3]] })).toEqual(['seller_three', 'seller_one']);
+    expect(names({ requiredGroups: [[6]] })).toEqual(['seller_four']);
   });
 
   it('drops excluded releases from every seller', () => {

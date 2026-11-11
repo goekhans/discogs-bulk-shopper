@@ -44,29 +44,85 @@ export function wantlistLabel(item: WantlistItem): string {
   return parts.join(' · ');
 }
 
+/** "1998 · Vinyl, LP"; missing parts are left out, falling back to the release id. */
+export function variantLabel(item: WantlistItem): string {
+  const parts: string[] = [];
+  if (item.year) parts.push(String(item.year));
+  if (item.format) parts.push(item.format);
+  return parts.length ? parts.join(' · ') : `Release #${item.releaseId}`;
+}
+
+/** The wantlist items that are pressings of one master release (or a single masterless item). */
+export interface WantlistGroup {
+  /** The master id, or the release id for an item without a master. */
+  key: number;
+  masterId: number | null;
+  /** "Artist – Title" of the variant added to the wantlist first. */
+  label: string;
+  /** Sorted by year (unknown last), then format. */
+  variants: WantlistItem[];
+}
+
+const byYearThenFormat = (a: WantlistItem, b: WantlistItem) => {
+  if (a.year !== b.year) {
+    if (a.year === null) return 1;
+    if (b.year === null) return -1;
+    return a.year - b.year;
+  }
+  return a.format.localeCompare(b.format);
+};
+
 /**
- * Wantlist items whose artist or title contains the query (case-insensitive), excluding the
- * given release IDs. An empty query matches everything; the result is capped at `limit`.
+ * Groups wantlist items by master release, keeping the input order of first appearance. Items
+ * without a master form a group of their own keyed by release id.
  */
-export function filterWantlist(
-  items: WantlistItem[],
+export function groupWantlist(items: WantlistItem[]): WantlistGroup[] {
+  const groups = new Map<number, { earliest: WantlistItem; variants: WantlistItem[] }>();
+  for (const item of items) {
+    const key = item.masterId ?? item.releaseId;
+    const group = groups.get(key);
+    if (!group) {
+      groups.set(key, { earliest: item, variants: [item] });
+      continue;
+    }
+    group.variants.push(item);
+    if (item.addedAt < group.earliest.addedAt) group.earliest = item;
+  }
+  return [...groups].map(([key, { earliest, variants }]) => ({
+    key,
+    masterId: earliest.masterId,
+    label: `${earliest.artist} – ${earliest.title}`,
+    variants: [...variants].sort(byYearThenFormat)
+  }));
+}
+
+/**
+ * Groups with a variant whose artist or title contains the query (case-insensitive), each
+ * carrying only the variants not in `excludeIds`; groups left without variants are dropped. An
+ * empty query matches everything; the result is capped at `limit`.
+ */
+export function filterWantlistGroups(
+  groups: WantlistGroup[],
   query: string,
   excludeIds: number[] = [],
   limit = 8
-): WantlistItem[] {
+): WantlistGroup[] {
   const needle = query.trim().toLowerCase();
   const excluded = new Set(excludeIds);
-  const matches: WantlistItem[] = [];
-  for (const item of items) {
-    if (excluded.has(item.releaseId)) continue;
+  const matches: WantlistGroup[] = [];
+  for (const group of groups) {
     if (
       needle &&
-      !item.artist.toLowerCase().includes(needle) &&
-      !item.title.toLowerCase().includes(needle)
+      !group.variants.some(
+        (item) =>
+          item.artist.toLowerCase().includes(needle) || item.title.toLowerCase().includes(needle)
+      )
     ) {
       continue;
     }
-    matches.push(item);
+    const variants = group.variants.filter((item) => !excluded.has(item.releaseId));
+    if (variants.length === 0) continue;
+    matches.push(variants.length === group.variants.length ? group : { ...group, variants });
     if (matches.length >= limit) break;
   }
   return matches;

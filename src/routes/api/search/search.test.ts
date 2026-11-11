@@ -76,6 +76,27 @@ describe('runSearch', () => {
     expect(Object.keys(outcome.body.issues.fieldErrors).sort()).toEqual(['page', 'ranking']);
   });
 
+  it('rejects the retired requiredReleaseIds key with 400 invalid-params', async () => {
+    const outcome = await runSearch({ requiredReleaseIds: [1] }, deps());
+    expect(outcome.status).toBe(400);
+    if (outcome.status !== 400 || !('issues' in outcome.body)) {
+      throw new Error('expected invalid-params with issues');
+    }
+    expect(outcome.body.error).toBe('invalid-params');
+    expect(outcome.body.issues.formErrors.join(' ')).toContain('requiredReleaseIds');
+  });
+
+  it('passes requiredGroups through to the ranking', async () => {
+    const rank = vi.fn(() => ({ results: [], total: 0, page: 1, pageSize: 10 }));
+    await runSearch({ requiredGroups: [[1, 2], [3]] }, deps({ rank }));
+    expect(rank).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ requiredGroups: [[1, 2], [3]] })
+    );
+  });
+
   it('returns 400 unknown-currency when the rates lookup fails', async () => {
     const outcome = await runSearch({ currency: 'xyz' }, deps());
     expect(outcome.status).toBe(400);

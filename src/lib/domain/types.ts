@@ -6,6 +6,8 @@ export { GRADES, gradeRank, parseGrade } from './grades';
 /** One release on the user's Discogs wantlist. */
 export interface WantlistItem {
   releaseId: number;
+  /** The master release this pressing belongs to; null when Discogs has none. */
+  masterId: number | null;
   title: string;
   artist: string;
   year: number | null;

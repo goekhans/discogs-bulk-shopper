@@ -98,12 +98,15 @@ export function groupBySeller(
   return groupChosenItems(listings.map((l) => toChosenItem(l, index, rates, currency)));
 }
 
-/** Drops sellers that lack a required release or offer fewer than max(1, minItems) items. */
+/**
+ * Drops sellers that offer fewer than max(1, minItems) items or miss a required group: for every
+ * group the seller must offer at least one of its releases (any-of). Empty groups are ignored.
+ */
 export function applySellerConstraints(
   groups: Map<number, SellerGroup>,
-  params: Pick<SearchParams, 'requiredReleaseIds' | 'minItems'>
+  params: Pick<SearchParams, 'requiredGroups' | 'minItems'>
 ): Map<number, SellerGroup> {
-  const required = [...new Set(params.requiredReleaseIds)];
+  const required = params.requiredGroups.filter((ids) => ids.length > 0);
   const minItems = Math.max(1, params.minItems);
   const kept = new Map<number, SellerGroup>();
 
@@ -111,7 +114,7 @@ export function applySellerConstraints(
     if (group.items.length < minItems) continue;
     if (required.length > 0) {
       const offered = new Set(group.items.map((item) => item.listing.releaseId));
-      if (!required.every((id) => offered.has(id))) continue;
+      if (!required.every((ids) => ids.some((id) => offered.has(id)))) continue;
     }
     kept.set(sellerId, group);
   }

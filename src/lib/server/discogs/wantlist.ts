@@ -4,7 +4,7 @@ import { discogsFetch, type DiscogsFetch } from './api';
 import type { DiscogsConfig } from './config';
 
 export const WANTLIST_TTL_MS = 24 * 60 * 60 * 1000;
-export const WANTLIST_CACHE_KEY = 'wantlist';
+export const WANTLIST_CACHE_KEY = 'wantlist-v2';
 const PER_PAGE = 100;
 
 /** The subset of a Discogs `GET /users/{username}/wants` response we read. */
@@ -18,6 +18,8 @@ export interface Want {
   date_added: string;
   basic_information: {
     id: number;
+    /** 0 when the release has no master. */
+    master_id?: number;
     title: string;
     year?: number;
     thumb?: string;
@@ -67,6 +69,7 @@ export function mapWant(want: Want): WantlistItem {
     : '';
   return {
     releaseId: info.id,
+    masterId: info.master_id ? info.master_id : null,
     title: info.title,
     artist: (info.artists ?? []).map((a) => stripDisambiguator(a.name)).join(', '),
     year: info.year ? info.year : null,

@@ -2,15 +2,39 @@ import { expect, test, type Page } from '@playwright/test';
 
 /** Fabricated data: anonymous seller names and generic releases, nothing from a real account. */
 const ARTISTS = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta'];
-const WANTLIST = Array.from({ length: 30 }, (_, i) => ({
-  releaseId: 1000 + i,
-  title: `Record ${String(i + 1).padStart(2, '0')}`,
-  artist: `${ARTISTS[i % ARTISTS.length]} Band`,
-  year: 1990 + (i % 30),
-  format: 'Vinyl, LP',
-  thumbUrl: null,
-  addedAt: '2026-01-01T00:00:00.000Z'
-}));
+const WANTLIST = [
+  ...Array.from({ length: 30 }, (_, i) => ({
+    releaseId: 1000 + i,
+    masterId: null as number | null,
+    title: `Record ${String(i + 1).padStart(2, '0')}`,
+    artist: `${ARTISTS[i % ARTISTS.length]} Band`,
+    year: 1990 + (i % 30),
+    format: 'Vinyl, LP',
+    thumbUrl: null,
+    addedAt: '2026-01-01T00:00:00.000Z'
+  })),
+  // One master with two pressings, so the autocomplete shows a group.
+  {
+    releaseId: 10,
+    masterId: 9001,
+    title: 'Record 10',
+    artist: 'Delta Band',
+    year: 1990,
+    format: 'Vinyl, LP',
+    thumbUrl: null,
+    addedAt: '2026-01-02T00:00:00.000Z'
+  },
+  {
+    releaseId: 11,
+    masterId: 9001,
+    title: 'Record 10 (Reissue)',
+    artist: 'Delta Band',
+    year: 2015,
+    format: 'Vinyl, LP, Reissue',
+    thumbUrl: null,
+    addedAt: '2026-01-03T00:00:00.000Z'
+  }
+];
 
 const TOTAL_SELLERS = 25;
 
@@ -125,7 +149,7 @@ test.beforeEach(async ({ page }) => {
 
 test('shows the data status from the mocked API', async ({ page }) => {
   const status = page.getByRole('region', { name: 'Data status' });
-  await expect(status).toContainText('30 releases');
+  await expect(status).toContainText('32 releases');
   await expect(status).toContainText('4.321 listings');
   await expect(status).toContainText('Logged in as test-user');
 });
@@ -160,9 +184,108 @@ test('the must-have autocomplete adds a chip', async ({ page }) => {
   const chips = page.getByRole('list', { name: 'Must have: selected' });
   await expect(chips.getByRole('listitem')).toHaveCount(1);
   await expect(chips).toContainText('Gamma Band – Record 03');
+  await expect(chips).not.toContainText('version');
   await expect(input).toHaveValue('');
 
   // Backspace in the empty input removes the last chip again.
   await input.press('Backspace');
   await expect(chips.getByRole('listitem')).toHaveCount(0);
+});
+
+test('selecting a whole master requires any of its pressings', async ({ page }) => {
+  const input = page.getByRole('combobox', { name: 'Must have' });
+  await input.fill('record 10');
+  const listbox = page.getByRole('listbox', { name: 'Must have suggestions' });
+  const options = listbox.getByRole('option');
+  // "Record 10" also matches "Record 10" itself (id 1009) plus the two-pressing master.
+  await expect(options).toHaveCount(2);
+  const group = options.filter({ hasText: 'Delta Band – Record 10 · 2 versions' });
+  await expect(group).toHaveCount(1);
+  await expect(
+    group.getByRole('button', { name: 'Show versions of Delta Band – Record 10' })
+  ).toHaveAttribute('aria-expanded', 'false');
+
+  await group.click();
+  const chips = page.getByRole('list', { name: 'Must have: selected' });
+  await expect(chips.getByRole('listitem')).toHaveCount(1);
+  await expect(chips).toContainText('Delta Band – Record 10 · any version');
+  // The picked group leaves the suggestions.
+  await input.fill('record 10');
+  await expect(options).toHaveCount(1);
+  await expect(options.first()).not.toContainText('versions');
+
+  const request = page.waitForRequest('**/api/search');
+  await page.getByRole('button', { name: 'Search' }).click();
+  const body = (await request).postDataJSON() as { requiredGroups: number[][] };
+  expect(body.requiredGroups).toEqual([[10, 11]]);
+  expect(body).not.toHaveProperty('requiredReleaseIds');
+
+  await chips.getByRole('button', { name: 'Remove Delta Band – Record 10 · any version' }).click();
+  await expect(chips.getByRole('listitem')).toHaveCount(0);
+});
+
+test('expanding a master lets one pressing be picked', async ({ page }) => {
+  const input = page.getByRole('combobox', { name: 'Must have' });
+  // Matches the title of the 2015 pressing only, so the whole master is the single suggestion.
+  await input.fill('reissue');
+  const listbox = page.getByRole('listbox', { name: 'Must have suggestions' });
+  const options = listbox.getByRole('option');
+  await expect(options).toHaveCount(1);
+  await expect(options.first()).toContainText('Delta Band – Record 10 · 2 versions');
+
+  // ArrowRight on the active group row reveals the pressings as nested options.
+  await input.press('ArrowRight');
+  await expect(options).toHaveCount(3);
+  await expect(options.nth(1)).toHaveText('1990 · Vinyl, LP');
+  await expect(options.nth(2)).toHaveText('2015 · Vinyl, LP, Reissue');
+  await expect(
+    listbox.getByRole('button', { name: 'Show versions of Delta Band – Record 10' })
+  ).toHaveAttribute('aria-expanded', 'true');
+
+  await input.press('ArrowLeft');
+  await expect(options).toHaveCount(1);
+  await listbox.getByRole('button', { name: 'Show versions of Delta Band – Record 10' }).click();
+  await expect(options).toHaveCount(3);
+
+  await input.press('ArrowDown');
+  await input.press('ArrowDown');
+  await expect(input).toHaveAttribute('aria-activedescendant', /option-r11$/);
+  await input.press('Enter');
+  const chips = page.getByRole('list', { name: 'Must have: selected' });
+  await expect(chips.getByRole('listitem')).toHaveCount(1);
+  await expect(chips).toContainText('Delta Band – Record 10 · 1 of 2 versions');
+
+  // Only the remaining pressing is still offered, as a single row.
+  await input.fill('reissue');
+  await expect(options).toHaveCount(1);
+  await expect(options.first()).toHaveText('Delta Band – Record 10 · 1990 · Vinyl, LP');
+  await expect(options.first().getByRole('button')).toHaveCount(0);
+
+  const request = page.waitForRequest('**/api/search');
+  await page.getByRole('button', { name: 'Search' }).click();
+  expect(((await request).postDataJSON() as { requiredGroups: number[][] }).requiredGroups).toEqual(
+    [[11]]
+  );
+});
+
+test('chips render below the hint text', async ({ page }) => {
+  const input = page.getByRole('combobox', { name: 'Must have' });
+  await input.fill('record 03');
+  await input.press('Enter');
+  const chips = page.getByRole('list', { name: 'Must have: selected' });
+  await expect(chips).toBeVisible();
+  const hint = page.getByText('Sellers must offer every one of these (any version you picked).');
+  await expect(hint).toBeVisible();
+
+  const hintPrecedesChips = await hint.evaluate(
+    (hintEl, chipsEl) => {
+      if (!chipsEl) return false;
+      return Boolean(hintEl.compareDocumentPosition(chipsEl) & Node.DOCUMENT_POSITION_FOLLOWING);
+    },
+    await chips.elementHandle()
+  );
+  expect(hintPrecedesChips).toBe(true);
+  const hintBox = (await hint.boundingBox())!;
+  const chipsBox = (await chips.boundingBox())!;
+  expect(chipsBox.y).toBeGreaterThanOrEqual(hintBox.y + hintBox.height);
 });

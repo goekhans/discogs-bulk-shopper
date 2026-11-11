@@ -227,14 +227,14 @@ describe('SearchStore', () => {
     const storage = memoryStorage();
     const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage });
     store.setParams({ currency: 'EUR', minItems: 3 });
-    store.addRequired(7);
+    store.addRequired([7]);
 
     const saved = JSON.parse(storage.data.get(SEARCH_STORAGE_KEY)!);
     expect(saved).toEqual({
       ...DEFAULT_SEARCH_PARAMS,
       currency: 'EUR',
       minItems: 3,
-      requiredReleaseIds: [7],
+      requiredGroups: [[7]],
       page: undefined
     });
     expect('page' in saved).toBe(false);
@@ -244,7 +244,7 @@ describe('SearchStore', () => {
       ...DEFAULT_SEARCH_PARAMS,
       currency: 'EUR',
       minItems: 3,
-      requiredReleaseIds: [7]
+      requiredGroups: [[7]]
     });
   });
 
@@ -274,25 +274,68 @@ describe('SearchStore', () => {
     }
   });
 
+  it('restores params stored before groups existed with an empty requiredGroups', () => {
+    const storage = memoryStorage({
+      [SEARCH_STORAGE_KEY]: JSON.stringify({ requiredReleaseIds: [7], excludedReleaseIds: [8] })
+    });
+    const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage });
+    expect(store.params).toEqual({ ...DEFAULT_SEARCH_PARAMS, excludedReleaseIds: [8] });
+  });
+
+  it('merges required ids into the any-of group of their master', () => {
+    const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage: null });
+    // Master A has pressings 10, 11, 12; master B has 20, 21.
+    store.addRequired([10], [10, 11, 12]);
+    store.addRequired([20, 21], [20, 21]);
+    expect(store.params.requiredGroups).toEqual([[10], [20, 21]]);
+
+    store.addRequired([12], [10, 11, 12]);
+    store.addRequired([12], [10, 11, 12]);
+    expect(store.params.requiredGroups).toEqual([
+      [10, 12],
+      [20, 21]
+    ]);
+
+    // Without the master's ids, a lone release starts its own group.
+    store.addRequired([30]);
+    expect(store.params.requiredGroups).toEqual([[10, 12], [20, 21], [30]]);
+    store.addRequired([]);
+    expect(store.params.requiredGroups).toEqual([[10, 12], [20, 21], [30]]);
+  });
+
+  it('removes required ids from every group and drops empty groups', () => {
+    const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage: null });
+    store.addRequired([10, 11], [10, 11, 12]);
+    store.addRequired([20], [20, 21]);
+    store.removeRequired([11, 20, 99]);
+    expect(store.params.requiredGroups).toEqual([[10]]);
+    store.removeRequired([10]);
+    expect(store.params.requiredGroups).toEqual([]);
+  });
+
   it('keeps required and excluded ids disjoint', () => {
     const store = new SearchStore({ fetch: pagedFetch(0).fetch, storage: null });
-    store.addRequired(1);
-    store.addRequired(1);
-    store.addExcluded(2);
-    expect(store.params.requiredReleaseIds).toEqual([1]);
+    store.addRequired([1]);
+    store.addRequired([1]);
+    store.addExcluded([2]);
+    expect(store.params.requiredGroups).toEqual([[1]]);
     expect(store.params.excludedReleaseIds).toEqual([2]);
 
-    store.addExcluded(1);
-    expect(store.params.requiredReleaseIds).toEqual([]);
+    store.addExcluded([1]);
+    expect(store.params.requiredGroups).toEqual([]);
     expect(store.params.excludedReleaseIds).toEqual([2, 1]);
 
-    store.addRequired(2);
-    expect(store.params.requiredReleaseIds).toEqual([2]);
+    store.addRequired([2, 3], [2, 3]);
+    expect(store.params.requiredGroups).toEqual([[2, 3]]);
     expect(store.params.excludedReleaseIds).toEqual([1]);
 
-    store.removeRequired(2);
-    store.removeExcluded(1);
-    expect(store.params.requiredReleaseIds).toEqual([]);
+    store.addExcluded([2, 2]);
+    expect(store.params.requiredGroups).toEqual([[3]]);
+    expect(store.params.excludedReleaseIds).toEqual([1, 2]);
+
+    store.removeRequired([3]);
+    store.removeExcluded([1, 2]);
+    expect(store.params.requiredGroups).toEqual([]);
     expect(store.params.excludedReleaseIds).toEqual([]);
   });
 

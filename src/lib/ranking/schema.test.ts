@@ -24,14 +24,26 @@ describe('searchParamsSchema', () => {
   });
 
   it('dedupes release ids and rejects non-positive ones', () => {
-    const parsed = searchParamsSchema.parse({
-      requiredReleaseIds: [3, 1, 3],
-      excludedReleaseIds: [2, 2]
-    });
-    expect(parsed.requiredReleaseIds).toEqual([3, 1]);
+    const parsed = searchParamsSchema.parse({ excludedReleaseIds: [2, 2] });
     expect(parsed.excludedReleaseIds).toEqual([2]);
-    expect(searchParamsSchema.safeParse({ requiredReleaseIds: [0] }).success).toBe(false);
-    expect(searchParamsSchema.safeParse({ requiredReleaseIds: [1.5] }).success).toBe(false);
+    expect(searchParamsSchema.safeParse({ excludedReleaseIds: [0] }).success).toBe(false);
+    expect(searchParamsSchema.safeParse({ excludedReleaseIds: [1.5] }).success).toBe(false);
+  });
+
+  it('dedupes ids within a required group, drops empty and duplicate groups', () => {
+    const parsed = searchParamsSchema.parse({
+      requiredGroups: [[3, 1, 3], [], [2], [1, 3]]
+    });
+    expect(parsed.requiredGroups).toEqual([[3, 1], [2]]);
+    expect(searchParamsSchema.safeParse({ requiredGroups: [[0]] }).success).toBe(false);
+    expect(searchParamsSchema.safeParse({ requiredGroups: [1] }).success).toBe(false);
+    expect(searchParamsSchema.safeParse({ requiredGroups: [[1.5]] }).success).toBe(false);
+  });
+
+  it('strips unknown keys such as the retired requiredReleaseIds', () => {
+    const parsed = searchParamsSchema.parse({ requiredReleaseIds: [7] });
+    expect(parsed.requiredGroups).toEqual([]);
+    expect('requiredReleaseIds' in parsed).toBe(false);
   });
 
   it('bounds page, pageSize and minItems', () => {
@@ -59,6 +71,13 @@ describe('parseSearchRequest', () => {
     expect(unknown.success && unknown.data.shipTo).toBe('unknown');
   });
 
+  it('rejects the retired requiredReleaseIds key', () => {
+    const result = parseSearchRequest({ requiredReleaseIds: [7] });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.issues.formErrors.join(' ')).toContain('requiredReleaseIds');
+  });
+
   it('returns flattened issues on failure', () => {
     const result = parseSearchRequest({ shipTo: 'Denmark', page: 'x' });
     expect(result.success).toBe(false);
@@ -72,5 +91,14 @@ describe('parseSearchParams', () => {
     expect(parseSearchParams('nope')).toBeNull();
     expect(parseSearchParams({ ranking: 'bogus' })).toBeNull();
     expect(parseSearchParams({ currency: 'sek' })?.currency).toBe('SEK');
+  });
+
+  it('restores params stored before groups existed with an empty requiredGroups', () => {
+    const stored = { requiredReleaseIds: [1, 2], excludedReleaseIds: [3], currency: 'EUR' };
+    expect(parseSearchParams(stored)).toEqual({
+      ...DEFAULT_SEARCH_PARAMS,
+      excludedReleaseIds: [3],
+      currency: 'EUR'
+    });
   });
 });

@@ -70,11 +70,25 @@ describe('applySellerConstraints', () => {
   it('drops sellers missing a required release', () => {
     const kept = applySellerConstraints(groups, {
       ...DEFAULT_SEARCH_PARAMS,
-      requiredReleaseIds: [3]
+      requiredGroups: [[3]]
     });
     expect([...kept.keys()].sort()).toEqual([1, 3]);
     expect(
-      applySellerConstraints(groups, { ...DEFAULT_SEARCH_PARAMS, requiredReleaseIds: [3, 5] }).size
+      applySellerConstraints(groups, { ...DEFAULT_SEARCH_PARAMS, requiredGroups: [[3], [5]] }).size
     ).toBe(1);
+  });
+
+  it('keeps a seller offering any one release of a group, and requires every group', () => {
+    const anyOf = (requiredGroups: number[][]) =>
+      [
+        ...applySellerConstraints(groups, { ...DEFAULT_SEARCH_PARAMS, requiredGroups }).keys()
+      ].sort();
+    // Seller 3 offers 5, seller 4 offers 6: either release satisfies the group.
+    expect(anyOf([[5, 6]])).toEqual([3, 4]);
+    // Both groups must be satisfied: only seller 3 offers 3 and one of 5/6.
+    expect(anyOf([[3], [5, 6]])).toEqual([3]);
+    expect(anyOf([[42, 43]])).toEqual([]);
+    // Empty groups do not constrain anything.
+    expect(anyOf([[]])).toEqual([1, 2, 3, 4]);
   });
 });

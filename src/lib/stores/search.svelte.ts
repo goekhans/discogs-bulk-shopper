@@ -86,26 +86,43 @@ export class SearchStore {
     this.#persist();
   }
 
-  addRequired(releaseId: number): void {
+  /**
+   * Adds releases to the Must-have any-of group they belong to. `groupIds` is every release id
+   * of the master (or just the release): the ids join the first existing group that overlaps
+   * it, otherwise they start a new group. The ids leave the exclusions.
+   */
+  addRequired(releaseIds: number[], groupIds: number[] = releaseIds): void {
+    const ids = unique(releaseIds);
+    if (ids.length === 0) return;
+    const members = [...groupIds, ...ids];
+    const groups = this.params.requiredGroups;
+    const index = groups.findIndex((group) => group.some((id) => members.includes(id)));
+    const requiredGroups =
+      index === -1
+        ? [...groups, ids]
+        : groups.map((group, i) => (i === index ? withIds(group, ids) : group));
     this.setParams({
-      requiredReleaseIds: withId(this.params.requiredReleaseIds, releaseId),
-      excludedReleaseIds: withoutId(this.params.excludedReleaseIds, releaseId)
+      requiredGroups,
+      excludedReleaseIds: withoutIds(this.params.excludedReleaseIds, ids)
     });
   }
 
-  removeRequired(releaseId: number): void {
-    this.setParams({ requiredReleaseIds: withoutId(this.params.requiredReleaseIds, releaseId) });
+  /** Removes the releases from every any-of group, dropping groups left empty. */
+  removeRequired(releaseIds: number[]): void {
+    this.setParams({ requiredGroups: groupsWithout(this.params.requiredGroups, releaseIds) });
   }
 
-  addExcluded(releaseId: number): void {
+  addExcluded(releaseIds: number[]): void {
+    const ids = unique(releaseIds);
+    if (ids.length === 0) return;
     this.setParams({
-      excludedReleaseIds: withId(this.params.excludedReleaseIds, releaseId),
-      requiredReleaseIds: withoutId(this.params.requiredReleaseIds, releaseId)
+      excludedReleaseIds: withIds(this.params.excludedReleaseIds, ids),
+      requiredGroups: groupsWithout(this.params.requiredGroups, ids)
     });
   }
 
-  removeExcluded(releaseId: number): void {
-    this.setParams({ excludedReleaseIds: withoutId(this.params.excludedReleaseIds, releaseId) });
+  removeExcluded(releaseIds: number[]): void {
+    this.setParams({ excludedReleaseIds: withoutIds(this.params.excludedReleaseIds, releaseIds) });
   }
 
   /** Runs a fresh search from page 1, replacing the results. */
@@ -206,12 +223,22 @@ export class SearchStore {
   }
 }
 
-function withId(ids: number[], id: number): number[] {
-  return ids.includes(id) ? ids : [...ids, id];
+function unique(ids: number[]): number[] {
+  return ids.filter((id, i) => ids.indexOf(id) === i);
 }
 
-function withoutId(ids: number[], id: number): number[] {
-  return ids.includes(id) ? ids.filter((x) => x !== id) : ids;
+function withIds(ids: number[], added: number[]): number[] {
+  const missing = added.filter((id) => !ids.includes(id));
+  return missing.length ? [...ids, ...missing] : ids;
+}
+
+function withoutIds(ids: number[], removed: number[]): number[] {
+  return removed.some((id) => ids.includes(id)) ? ids.filter((x) => !removed.includes(x)) : ids;
+}
+
+function groupsWithout(groups: number[][], removed: number[]): number[][] {
+  if (!groups.some((group) => group.some((id) => removed.includes(id)))) return groups;
+  return groups.map((group) => withoutIds(group, removed)).filter((group) => group.length > 0);
 }
 
 let singleton: SearchStore | null = null;
