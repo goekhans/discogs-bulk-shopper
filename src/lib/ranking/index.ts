@@ -18,3 +18,17 @@ export {
   type SellerEstimate
 } from './estimate.js';
 export { rankSellers, validateSearchParams } from './rank.js';
+export {
+  RANKING_MODES,
+  parseSearchParams,
+  parseSearchRequest,
+  searchParamsSchema,
+  searchRequestSchema,
+  shipToSchema,
+  type ParsedSearchRequest,
+  type ParseSearchRequestResult,
+  type SearchDataStatus,
+  type SearchParamsInput,
+  type SearchRequestInput,
+  type SearchRequestIssues
+} from './schema.js';

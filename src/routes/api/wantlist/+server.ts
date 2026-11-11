@@ -15,7 +15,11 @@ export const GET: RequestHandler = async ({ url }) => {
       return json({ error: 'config', message: err.message }, { status: 500 });
     }
     if (err instanceof DiscogsApiError) {
-      return json({ error: 'discogs', status: err.status, message: err.message }, { status: 502 });
+      // Never err.message: it names the wantlist path, which carries the username.
+      return json(
+        { error: 'discogs', status: err.status, message: 'Discogs could not be reached' },
+        { status: 502 }
+      );
     }
     throw err;
   }
