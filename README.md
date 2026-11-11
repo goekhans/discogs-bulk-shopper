@@ -27,6 +27,14 @@ The Discogs token comes from discogs.com > Settings > Developers > personal acce
 | `npm run lint`  | Prettier check + ESLint |
 | `npm run check` | svelte-check (types)    |
 
+## API
+
+| Endpoint            | Query params                         | Returns                               |
+| ------------------- | ------------------------------------ | ------------------------------------- |
+| `GET /api/wantlist` | `force=1` bypasses the 24-hour cache | `{ items, fetchedAt, count }` as JSON |
+
+Errors are JSON too: a missing `.env` variable gives `500 { error: 'config', message }` and a failed Discogs call gives `502 { error: 'discogs', status, message }`. Responses are cached as JSON under `.cache/` (git-ignored; override the directory with `CACHE_DIR`).
+
 ## Stack
 
 SvelteKit (Svelte 5 runes), SCSS design system in `src/lib/styles/` (tokens are injected into every component style via Vite; `main.scss` is imported once in the root layout), light/dark theme from `prefers-color-scheme`.

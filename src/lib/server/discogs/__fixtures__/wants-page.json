@@ -1,0 +1,115 @@
+{
+  "pagination": {
+    "page": 1,
+    "pages": 2,
+    "per_page": 100,
+    "items": 3,
+    "urls": {
+      "last": "https://api.discogs.com/users/example_user/wants?page=2&per_page=100",
+      "next": "https://api.discogs.com/users/example_user/wants?page=2&per_page=100"
+    }
+  },
+  "wants": [
+    {
+      "id": 1810,
+      "resource_url": "https://api.discogs.com/releases/1810",
+      "rating": 0,
+      "date_added": "2024-03-11T18:42:07-07:00",
+      "basic_information": {
+        "id": 1810,
+        "master_id": 7059,
+        "master_url": "https://api.discogs.com/masters/7059",
+        "resource_url": "https://api.discogs.com/releases/1810",
+        "thumb": "https://i.discogs.com/example/R-1810-thumb.jpeg",
+        "cover_image": "https://i.discogs.com/example/R-1810-cover.jpeg",
+        "title": "Autobahn",
+        "year": 1974,
+        "formats": [
+          {
+            "name": "Vinyl",
+            "qty": "1",
+            "descriptions": ["LP", "Album"]
+          }
+        ],
+        "labels": [
+          {
+            "name": "Philips",
+            "catno": "6305 231",
+            "entity_type": "1",
+            "entity_type_name": "Label",
+            "id": 2213,
+            "resource_url": "https://api.discogs.com/labels/2213"
+          }
+        ],
+        "artists": [
+          {
+            "name": "Kraftwerk",
+            "anv": "",
+            "join": "",
+            "role": "",
+            "tracks": "",
+            "id": 2320,
+            "resource_url": "https://api.discogs.com/artists/2320"
+          }
+        ],
+        "genres": ["Electronic"],
+        "styles": ["Krautrock", "Experimental"]
+      }
+    },
+    {
+      "id": 2404,
+      "resource_url": "https://api.discogs.com/releases/2404",
+      "rating": 0,
+      "date_added": "2024-05-02T09:15:33-07:00",
+      "basic_information": {
+        "id": 2404,
+        "master_id": 0,
+        "master_url": null,
+        "resource_url": "https://api.discogs.com/releases/2404",
+        "thumb": "",
+        "cover_image": "",
+        "title": "Piñata",
+        "year": 0,
+        "formats": [
+          {
+            "name": "Vinyl",
+            "qty": "2",
+            "descriptions": ["LP", "Album", "Reissue"]
+          }
+        ],
+        "labels": [
+          {
+            "name": "Madlib Invazion",
+            "catno": "MMS-025",
+            "entity_type": "1",
+            "entity_type_name": "Label",
+            "id": 1098,
+            "resource_url": "https://api.discogs.com/labels/1098"
+          }
+        ],
+        "artists": [
+          {
+            "name": "Freddie Gibbs",
+            "anv": "",
+            "join": "&",
+            "role": "",
+            "tracks": "",
+            "id": 1414,
+            "resource_url": "https://api.discogs.com/artists/1414"
+          },
+          {
+            "name": "Madlib (2)",
+            "anv": "",
+            "join": "",
+            "role": "",
+            "tracks": "",
+            "id": 7311,
+            "resource_url": "https://api.discogs.com/artists/7311"
+          }
+        ],
+        "genres": ["Hip Hop"],
+        "styles": ["Conscious"]
+      }
+    }
+  ]
+}
