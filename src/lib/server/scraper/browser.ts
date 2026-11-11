@@ -51,7 +51,7 @@ export async function removeSingletonFiles(profileDir: string): Promise<void> {
 
 async function launch(options: BrowserOptions): Promise<BrowserContext> {
   const profileDir = resolveProfileDir(options.profileDir);
-  const headless = options.headless ?? (await loadHeadlessSetting());
+  const headless = options.headless ?? (await isHeadless());
   await removeSingletonFiles(profileDir);
   return chromium.launchPersistentContext(profileDir, {
     channel: 'chrome',
@@ -63,12 +63,14 @@ async function launch(options: BrowserOptions): Promise<BrowserContext> {
   });
 }
 
-/** The SvelteKit env module is only touched when the setting is not given explicitly. */
-async function loadHeadlessSetting(): Promise<boolean> {
+/**
+ * Whether SCRAPER_HEADLESS is on. The SvelteKit env module is only touched when the setting is not
+ * given explicitly; outside SvelteKit (scripts) the plain environment variable is read.
+ */
+export async function isHeadless(): Promise<boolean> {
   try {
     return (await import('./config')).getScraperConfig().headless;
   } catch {
-    // Outside SvelteKit (scripts): fall back to the plain environment variable.
     return /^(1|true|yes)$/i.test(process.env.SCRAPER_HEADLESS ?? '');
   }
 }

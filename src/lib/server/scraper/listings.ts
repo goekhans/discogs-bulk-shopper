@@ -25,9 +25,11 @@ export interface ScrapeProgress {
   total: number;
 }
 
+/**
+ * There is no ship-to option: Discogs quotes shipping for the buyer settings of the profile's
+ * session (see docs/ship-to.md), which `getListings` reads and files the snapshot under.
+ */
 export interface FetchListingsOptions {
-  /** ISO 3166-1 alpha-2 country the buyer is in. See docs/ship-to.md: it cannot be enforced. */
-  shipTo: string;
   onProgress?: (progress: ScrapeProgress) => void;
 }
 
@@ -114,10 +116,9 @@ export function chunk<T>(values: T[], size: number): T[][] {
  */
 export async function fetchListings(
   releaseIds: number[],
-  { shipTo, onProgress }: FetchListingsOptions,
+  { onProgress }: FetchListingsOptions = {},
   deps: Partial<FetchListingsDeps> = {}
 ): Promise<Listing[]> {
-  void shipTo; // Not enforceable, see docs/ship-to.md; kept in the signature for when it is.
   const d: FetchListingsDeps = { ...defaultDeps, ...deps };
   const unique = [...new Set(releaseIds)];
   const chunks = chunk(unique, MAX_RELEASE_IDS_PER_SEARCH);

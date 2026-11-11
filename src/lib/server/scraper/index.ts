@@ -1,25 +1,32 @@
 import type { Listing } from '#lib/domain/types.js';
 import { isFresh, readSnapshot, writeSnapshot, type Snapshot } from '#lib/server/cache.js';
 import { fetchListings, type FetchListingsDeps, type ScrapeProgress } from './listings';
+import type { SessionState } from './session';
 
 export { ScrapeError, fetchListings, mapItem, parseMoney } from './listings';
 export type { ScrapeProgress } from './listings';
 
 export const LISTINGS_TTL_MS = 6 * 60 * 60 * 1000;
 
-/** What is stored under `listings-<shipTo>`. */
+/** The destination a snapshot is filed under when the session reports none (logged out). */
+export const UNKNOWN_SHIP_TO = 'unknown';
+
+/** What is stored under `listings-<shipTo>`. Never the username. */
 export interface ListingsSnapshotData {
   listings: Listing[];
-  /** 'profile': shipping is quoted for the Chrome profile's location, see docs/ship-to.md. */
-  shipTo: 'profile';
-  requestedShipTo: string;
+  /** ISO code of the buyer settings' country the shipping was quoted for, or 'unknown'. */
+  shipTo: string;
+  shipToName: string | null;
+  /** Whether the Chrome profile was logged in to Discogs when the listings were scraped. */
+  loggedIn: boolean;
 }
 
 export interface ListingsResult {
   listings: Listing[];
   fetchedAt: string;
-  shipTo: 'profile';
-  requestedShipTo: string;
+  shipTo: string;
+  shipToName: string | null;
+  loggedIn: boolean;
   count: number;
 }
 
@@ -29,13 +36,14 @@ export interface ListingsCache {
 }
 
 export interface GetListingsOptions {
-  shipTo: string;
   force?: boolean;
   onProgress?: (progress: ScrapeProgress) => void;
 }
 
 export interface GetListingsDeps {
   getWantlist: () => Promise<{ items: { releaseId: number }[] }>;
+  /** The Discogs session of the scraper profile, read right before scraping. */
+  getSession: () => Promise<Pick<SessionState, 'loggedIn' | 'shipTo'>>;
   fetchListings: typeof fetchListings;
   scraper: Partial<FetchListingsDeps>;
   cache: ListingsCache;
@@ -48,6 +56,7 @@ export function listingsCacheKey(shipTo: string): string {
 
 const defaultDeps: GetListingsDeps = {
   getWantlist: async () => (await import('#lib/server/discogs/wantlist.js')).getWantlist(),
+  getSession: async () => (await import('./session')).getSession(),
   fetchListings,
   scraper: {},
   cache: {
@@ -62,7 +71,8 @@ function toResult(snapshot: Snapshot<ListingsSnapshotData>): ListingsResult {
     listings: snapshot.data.listings,
     fetchedAt: snapshot.fetchedAt,
     shipTo: snapshot.data.shipTo,
-    requestedShipTo: snapshot.data.requestedShipTo,
+    shipToName: snapshot.data.shipToName,
+    loggedIn: snapshot.data.loggedIn,
     count: snapshot.data.listings.length
   };
 }
@@ -79,14 +89,17 @@ export async function readListingsSnapshot(
 }
 
 /**
- * Marketplace listings for every release on the wantlist, served from the 6h cache unless `force`
- * is set or the snapshot is missing or stale. A failed scrape rejects without touching the cache.
+ * Marketplace listings for every release on the wantlist, quoted for the ship-to country of the
+ * profile's Discogs session and served from the 6h cache of that country unless `force` is set or
+ * the snapshot is missing or stale. A failed scrape rejects without touching the cache.
  */
 export async function getListings(
-  { shipTo, force = false, onProgress }: GetListingsOptions,
+  { force = false, onProgress }: GetListingsOptions = {},
   deps: Partial<GetListingsDeps> = {}
 ): Promise<ListingsResult> {
   const d: GetListingsDeps = { ...defaultDeps, ...deps };
+  const session = await d.getSession();
+  const shipTo = session.shipTo?.code ?? UNKNOWN_SHIP_TO;
   const key = listingsCacheKey(shipTo);
 
   if (!force) {
@@ -97,13 +110,14 @@ export async function getListings(
   const { items } = await d.getWantlist();
   const listings = await d.fetchListings(
     items.map((item) => item.releaseId),
-    { shipTo, onProgress },
+    { onProgress },
     d.scraper
   );
   const snapshot = await d.cache.write(key, {
     listings,
-    shipTo: 'profile',
-    requestedShipTo: shipTo
+    shipTo,
+    shipToName: session.shipTo?.name ?? null,
+    loggedIn: session.loggedIn
   });
   return toResult(snapshot);
 }

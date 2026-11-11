@@ -12,7 +12,7 @@ import {
   type SearchFn,
   type SearchItem
 } from './listings';
-import { getListings, listingsCacheKey, type ListingsCache } from './index';
+import { getListings, listingsCacheKey, readListingsSnapshot, type ListingsCache } from './index';
 
 type Page = Awaited<ReturnType<SearchFn>>;
 
@@ -80,11 +80,7 @@ describe('fetchListings', () => {
       .mockResolvedValueOnce(page({ items: [c], total: 3, nextCursor: null }));
     const onProgress = vi.fn();
 
-    const listings = await fetchListings(
-      [249504, 1180898],
-      { shipTo: 'DK', onProgress },
-      { search }
-    );
+    const listings = await fetchListings([249504, 1180898], { onProgress }, { search });
 
     expect(listings.map((l) => l.id)).toEqual([1001, 1002, 1003]);
     expect(search).toHaveBeenCalledTimes(3);
@@ -120,7 +116,7 @@ describe('fetchListings', () => {
     const search = vi.fn<SearchFn>().mockResolvedValue(page({ items: [], nextCursor: null }));
     const onProgress = vi.fn();
 
-    await fetchListings(ids, { shipTo: 'DK', onProgress }, { search });
+    await fetchListings(ids, { onProgress }, { search });
 
     expect(search).toHaveBeenCalledTimes(2);
     expect(search.mock.calls[0][0].releaseIds).toHaveLength(MAX_RELEASE_IDS_PER_SEARCH);
@@ -134,7 +130,7 @@ describe('fetchListings', () => {
       .mockResolvedValueOnce(page({ nextCursor: 'c1' }))
       .mockResolvedValueOnce(page({ nextCursor: null }));
 
-    const listings = await fetchListings([249504], { shipTo: 'DK' }, { search });
+    const listings = await fetchListings([249504], {}, { search });
 
     expect(listings.map((l) => l.id)).toEqual([1001, 1002]);
   });
@@ -142,7 +138,7 @@ describe('fetchListings', () => {
   it('passes the shared browser context to every search', async () => {
     const context = { fake: true } as unknown as BrowserContext;
     const search = vi.fn<SearchFn>().mockResolvedValue(page());
-    await fetchListings([1], { shipTo: 'DK' }, { search, context: async () => context });
+    await fetchListings([1], {}, { search, context: async () => context });
     expect(search.mock.calls[0][1]).toBe(context);
   });
 
@@ -153,7 +149,7 @@ describe('fetchListings', () => {
       .mockResolvedValueOnce(page({ nextCursor: 'c1' }))
       .mockRejectedValueOnce(cause);
 
-    const promise = fetchListings([249504], { shipTo: 'DK' }, { search });
+    const promise = fetchListings([249504], {}, { search });
     await expect(promise).rejects.toBeInstanceOf(ScrapeError);
     await expect(promise).rejects.toMatchObject({
       message: expect.stringContaining('blocked by Cloudflare'),
@@ -166,6 +162,12 @@ describe('fetchListings', () => {
 describe('getListings', () => {
   const NOW = Date.UTC(2026, 10, 11, 12, 0, 0);
   const wantlist = async () => ({ items: [{ releaseId: 249504 }, { releaseId: 1180898 }] });
+  const loggedIn = async () => ({
+    loggedIn: true,
+    username: 'example_user',
+    shipTo: { code: 'DK', name: 'Denmark' }
+  });
+  const loggedOut = async () => ({ loggedIn: false, username: null, shipTo: null });
 
   function memoryCache() {
     const store = new Map<string, Awaited<ReturnType<ListingsCache['read']>>>();
@@ -180,43 +182,99 @@ describe('getListings', () => {
     return { cache, store };
   }
 
-  it('scrapes the wantlist releases and writes the snapshot under listings-<shipto>', async () => {
+  it('scrapes the wantlist releases and files the snapshot under the session destination', async () => {
+    const { cache, store } = memoryCache();
+    const search = vi.fn<SearchFn>().mockResolvedValue(page());
+    const getSession = vi.fn(loggedIn);
+
+    const result = await getListings(
+      {},
+      { cache, getWantlist: wantlist, getSession, scraper: { search }, now: () => NOW }
+    );
+
+    expect(getSession).toHaveBeenCalledTimes(1);
+    expect(search.mock.calls[0][0].releaseIds).toEqual([249504, 1180898]);
+    expect(result).toMatchObject({
+      count: 2,
+      shipTo: 'DK',
+      shipToName: 'Denmark',
+      loggedIn: true
+    });
+    expect(result.listings.map((l) => l.id)).toEqual([1001, 1002]);
+    expect(listingsCacheKey('DK')).toBe('listings-dk');
+    expect(store.get('listings-dk')?.data).toEqual({
+      listings: result.listings,
+      shipTo: 'DK',
+      shipToName: 'Denmark',
+      loggedIn: true
+    });
+    expect(JSON.stringify(store.get('listings-dk'))).not.toContain('example_user');
+    expect(JSON.stringify(result)).not.toContain('example_user');
+  });
+
+  it('files a logged-out scrape under listings-unknown', async () => {
     const { cache, store } = memoryCache();
     const search = vi.fn<SearchFn>().mockResolvedValue(page());
 
     const result = await getListings(
-      { shipTo: 'DK' },
-      { cache, getWantlist: wantlist, scraper: { search }, now: () => NOW }
+      {},
+      { cache, getWantlist: wantlist, getSession: loggedOut, scraper: { search }, now: () => NOW }
     );
 
-    expect(search.mock.calls[0][0].releaseIds).toEqual([249504, 1180898]);
-    expect(result).toMatchObject({ count: 2, shipTo: 'profile', requestedShipTo: 'DK' });
-    expect(result.listings.map((l) => l.id)).toEqual([1001, 1002]);
-    expect(listingsCacheKey('DK')).toBe('listings-dk');
-    expect(store.get('listings-dk')?.data).toMatchObject({
-      shipTo: 'profile',
-      requestedShipTo: 'DK'
+    expect(result).toMatchObject({ shipTo: 'unknown', shipToName: null, loggedIn: false });
+    expect(store.has('listings-unknown')).toBe(true);
+    expect(await readListingsSnapshot('unknown', { cache })).toMatchObject({
+      shipTo: 'unknown',
+      stale: false
     });
   });
 
   it('serves a fresh snapshot without scraping and rescrapes a stale or forced one', async () => {
     const { cache, store } = memoryCache();
     const search = vi.fn<SearchFn>().mockResolvedValue(page());
-    const deps = { cache, getWantlist: wantlist, scraper: { search }, now: () => NOW };
+    const deps = {
+      cache,
+      getWantlist: wantlist,
+      getSession: loggedIn,
+      scraper: { search },
+      now: () => NOW
+    };
 
-    await getListings({ shipTo: 'DK' }, deps);
-    await getListings({ shipTo: 'DK' }, deps);
+    await getListings({}, deps);
+    await getListings({}, deps);
     expect(search).toHaveBeenCalledTimes(1);
 
-    await getListings({ shipTo: 'DK', force: true }, deps);
+    await getListings({ force: true }, deps);
     expect(search).toHaveBeenCalledTimes(2);
 
     store.set('listings-dk', {
       ...store.get('listings-dk')!,
       fetchedAt: '2020-01-01T00:00:00.000Z'
     });
-    await getListings({ shipTo: 'DK' }, deps);
+    await getListings({}, deps);
     expect(search).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps one snapshot per destination', async () => {
+    const { cache, store } = memoryCache();
+    const search = vi.fn<SearchFn>().mockResolvedValue(page());
+    const sweden = async () => ({
+      loggedIn: true,
+      username: 'example_user',
+      shipTo: { code: 'SE', name: 'Sweden' }
+    });
+
+    await getListings(
+      {},
+      { cache, getWantlist: wantlist, getSession: loggedIn, scraper: { search } }
+    );
+    await getListings(
+      {},
+      { cache, getWantlist: wantlist, getSession: sweden, scraper: { search } }
+    );
+
+    expect(search).toHaveBeenCalledTimes(2);
+    expect([...store.keys()]).toEqual(['listings-dk', 'listings-se']);
   });
 
   it('writes nothing to the cache when the scrape fails', async () => {
@@ -224,7 +282,7 @@ describe('getListings', () => {
     const search = vi.fn<SearchFn>().mockRejectedValue(new Error('boom'));
 
     await expect(
-      getListings({ shipTo: 'DK' }, { cache, getWantlist: wantlist, scraper: { search } })
+      getListings({}, { cache, getWantlist: wantlist, getSession: loggedIn, scraper: { search } })
     ).rejects.toBeInstanceOf(ScrapeError);
 
     expect(cache.write).not.toHaveBeenCalled();
