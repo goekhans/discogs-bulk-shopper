@@ -1,0 +1,121 @@
+{
+  "items": [
+    {
+      "id": 1001,
+      "title": "Example Artist - Example Album (Vinyl)",
+      "artists": [{ "id": 1, "name": "Example Artist", "url": "https://example.test/artist/1" }],
+      "release": {
+        "id": 249504,
+        "name": "Example Album",
+        "url": "https://example.test/release/249504",
+        "year": 1987,
+        "country": "UK",
+        "rating": null
+      },
+      "formats": ["Vinyl", "7\"", "Single"],
+      "labels": [{ "id": 10, "name": "Example Label", "url": "https://example.test/label/10" }],
+      "url": "https://example.test/shop/item/1001",
+      "listedAt": "2026-11-01T10:00:00.000Z",
+      "catnos": ["EX 001"],
+      "imageUrl": null,
+      "photos": [],
+      "description": "Plays fine.",
+      "isAcceptingOffer": false,
+      "isAvailable": true,
+      "condition": {
+        "media": { "full": "Near Mint (NM or M-)", "short": "NM or M-" },
+        "sleeve": { "full": "Very Good Plus (VG+)", "short": "VG+" }
+      },
+      "seller": {
+        "id": 501,
+        "name": "seller_one",
+        "url": "https://example.test/seller/seller_one/profile",
+        "score": "99.8%",
+        "notes": 1234,
+        "isIndependent": false
+      },
+      "price": { "base": "12.34 USD", "shipping": "5.67 USD" },
+      "country": { "name": "United States", "code": "US" },
+      "community": { "have": 0, "want": 0 }
+    },
+    {
+      "id": 1002,
+      "title": "Example Artist - Example Album (Vinyl)",
+      "artists": [{ "id": 1, "name": "Example Artist", "url": "https://example.test/artist/1" }],
+      "release": {
+        "id": 249504,
+        "name": "Example Album",
+        "url": "https://example.test/release/249504",
+        "year": 1987,
+        "country": "UK",
+        "rating": null
+      },
+      "formats": ["Vinyl"],
+      "labels": [],
+      "url": "https://example.test/shop/item/1002",
+      "listedAt": null,
+      "catnos": [],
+      "imageUrl": null,
+      "photos": [],
+      "description": null,
+      "isAcceptingOffer": true,
+      "isAvailable": true,
+      "condition": {
+        "media": { "full": "Very Good (VG)", "short": "VG" },
+        "sleeve": { "full": "Generic", "short": null }
+      },
+      "seller": {
+        "id": 502,
+        "name": "seller_two",
+        "url": "https://example.test/seller/seller_two/profile",
+        "score": null,
+        "notes": null,
+        "isIndependent": true
+      },
+      "price": { "base": "80.00 DKK", "shipping": null },
+      "country": { "name": "Denmark", "code": "DK" },
+      "community": { "have": 0, "want": 0 }
+    },
+    {
+      "id": 1003,
+      "title": "Other Artist - Other Record (CD)",
+      "artists": [{ "id": 2, "name": "Other Artist", "url": "https://example.test/artist/2" }],
+      "release": {
+        "id": 1180898,
+        "name": "Other Record",
+        "url": "https://example.test/release/1180898",
+        "year": 2001,
+        "country": "Europe",
+        "rating": null
+      },
+      "formats": ["CD"],
+      "labels": [],
+      "url": "https://example.test/shop/item/1003",
+      "listedAt": "2026-10-20T08:30:00.000Z",
+      "catnos": [],
+      "imageUrl": null,
+      "photos": [],
+      "description": null,
+      "isAcceptingOffer": false,
+      "isAvailable": false,
+      "condition": {
+        "media": { "full": "Mint (M)", "short": "M" },
+        "sleeve": { "full": "Mint (M)", "short": "M" }
+      },
+      "seller": {
+        "id": 503,
+        "name": "seller_three",
+        "url": "https://example.test/seller/seller_three/profile",
+        "score": "100.0%",
+        "notes": 12,
+        "isIndependent": false
+      },
+      "price": { "base": "9.99 EUR", "shipping": "4.00 EUR" },
+      "country": { "name": "Germany", "code": "DE" },
+      "community": { "have": 0, "want": 0 }
+    }
+  ],
+  "total": 3,
+  "nextCursor": null,
+  "urlGenerated": "https://example.test/shop/list?release=249504&release=1180898"
+}

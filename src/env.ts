@@ -25,5 +25,9 @@ export const variables = defineEnvVars({
   DEFAULT_CURRENCY: {
     schema: (value) => optional(value) ?? 'DKK',
     description: 'ISO 4217 currency used for totals.'
+  },
+  SCRAPER_HEADLESS: {
+    schema: (value) => /^(1|true|yes)$/i.test(optional(value) ?? ''),
+    description: 'Set to 1 to run the scraping Chrome without a window. Off by default.'
   }
 });
