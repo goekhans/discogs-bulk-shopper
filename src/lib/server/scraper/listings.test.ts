@@ -14,6 +14,13 @@ import {
 } from './listings';
 import { getListings, listingsCacheKey, readListingsSnapshot, type ListingsCache } from './index';
 
+// The search is mocked in every test, so the browser is never needed: without this mock a
+// test that omits `context` launches Chrome on the shared ./profile, which also deletes the
+// lock files of a Chrome the dev server is running.
+vi.mock('./browser', () => ({
+  getBrowserContext: async () => ({}) as BrowserContext
+}));
+
 type Page = Awaited<ReturnType<SearchFn>>;
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -223,7 +230,7 @@ describe('getListings', () => {
 
     expect(result).toMatchObject({ shipTo: 'unknown', shipToName: null, loggedIn: false });
     expect(store.has('listings-unknown')).toBe(true);
-    expect(await readListingsSnapshot('unknown', { cache })).toMatchObject({
+    expect(await readListingsSnapshot('unknown', { cache, now: () => NOW })).toMatchObject({
       shipTo: 'unknown',
       stale: false
     });

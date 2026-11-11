@@ -80,12 +80,13 @@ function toResult(snapshot: Snapshot<ListingsSnapshotData>): ListingsResult {
 /** Returns the cached listings snapshot whatever its age, or null when there is none. */
 export async function readListingsSnapshot(
   shipTo: string,
-  deps: Partial<Pick<GetListingsDeps, 'cache'>> = {}
+  deps: Partial<Pick<GetListingsDeps, 'cache' | 'now'>> = {}
 ): Promise<(ListingsResult & { stale: boolean }) | null> {
   const cache = deps.cache ?? defaultDeps.cache;
+  const now = deps.now ?? defaultDeps.now;
   const snapshot = await cache.read(listingsCacheKey(shipTo));
   if (!snapshot) return null;
-  return { ...toResult(snapshot), stale: !isFresh(snapshot, LISTINGS_TTL_MS) };
+  return { ...toResult(snapshot), stale: !isFresh(snapshot, LISTINGS_TTL_MS, now()) };
 }
 
 /**
