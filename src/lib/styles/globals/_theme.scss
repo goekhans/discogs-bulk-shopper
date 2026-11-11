@@ -1,0 +1,30 @@
+@use '../tokens' as *;
+
+// The theme's custom properties. The browser's colour scheme decides; there is no toggle yet.
+// data-theme on <html> is honoured so a toggle can be added later without touching this file.
+
+@mixin theme-properties($theme) {
+  @each $name, $value in $theme {
+    --color-#{$name}: #{$value};
+  }
+}
+
+:root {
+  @include theme-properties($theme-light);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include theme-properties($theme-dark);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  @include theme-properties($theme-dark);
+
+  color-scheme: dark;
+}

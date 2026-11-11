@@ -1,0 +1,36 @@
+@use 'sass:map';
+@use '../tokens' as *;
+
+// Generates one .style-<name> class per entry in $type-scale (variables/_typography.scss).
+// Components apply these in markup and never set font properties themselves.
+@each $name, $style in $type-scale {
+  $sm: map.get($style, 'sm');
+  $lg: map.get($style, 'lg');
+
+  .style-#{$name} {
+    @if map.has-key($style, 'font-family') {
+      font-family: map.get($style, 'font-family');
+    }
+
+    font-weight: map.get($style, 'font-weight');
+    font-size: map.get($sm, 'font-size');
+    line-height: map.get($sm, 'line-height');
+    letter-spacing: map.get($sm, 'letter-spacing');
+
+    @if map.has-key($style, 'text-transform') {
+      text-transform: map.get($style, 'text-transform');
+    }
+
+    @if map.has-key($style, 'font-feature-settings') {
+      font-feature-settings: map.get($style, 'font-feature-settings');
+    }
+
+    @if $lg != $sm {
+      @media #{$large-and-up} {
+        font-size: map.get($lg, 'font-size');
+        line-height: map.get($lg, 'line-height');
+        letter-spacing: map.get($lg, 'letter-spacing');
+      }
+    }
+  }
+}

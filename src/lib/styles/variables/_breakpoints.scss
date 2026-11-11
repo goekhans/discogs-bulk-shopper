@@ -1,0 +1,25 @@
+// Tier start values, mobile first.
+$small-up: 0px;
+$medium-up: 768px;
+$large-up: 1024px;
+$largest-up: 1440px;
+
+// Media query strings, used as @media #{$large-and-up} or via the breakpoint mixin.
+$medium-and-up: 'only screen and (min-width: #{$medium-up})';
+$large-and-up: 'only screen and (min-width: #{$large-up})';
+$largest-and-up: 'only screen and (min-width: #{$largest-up})';
+
+// One pixel before the next tier, for the rare bounded query.
+$small-max: $medium-up - 1px;
+$medium-max: $large-up - 1px;
+
+// Bounded: reach for these only when a style must stop applying.
+$small-only: 'only screen and (max-width: #{$small-max})';
+$medium-only: 'only screen and (min-width: #{$medium-up}) and (max-width: #{$medium-max})';
+
+// Name -> query, consumed by mixins/_breakpoint.scss.
+$breakpoints: (
+  'medium': $medium-and-up,
+  'large': $large-and-up,
+  'largest': $largest-and-up
+);

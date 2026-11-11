@@ -1,0 +1,9 @@
+// The global stylesheet, imported exactly once in src/routes/+layout.svelte.
+// Global layers only, in dependency order. Component styles live in their .svelte files and reach the
+// token layer (_tokens.scss) through Vite's additionalData, never by importing this file.
+@use 'globals/theme';
+@use 'globals/resets';
+@use 'globals/typography';
+@use 'globals/containers';
+@use 'globals/helpers';
+@use 'globals/motion';

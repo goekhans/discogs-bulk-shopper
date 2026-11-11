@@ -1,0 +1,9 @@
+@use '../variables/colors' as *;
+
+// Visible keyboard focus for interactive elements. Only shows for keyboard focus, not mouse clicks.
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid $color-focus;
+    outline-offset: 2px;
+  }
+}

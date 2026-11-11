@@ -1,0 +1,13 @@
+// The keyframes used by the motion mixins (mixins/_motion.scss). Global, so they are emitted once.
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}

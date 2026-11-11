@@ -1,0 +1,13 @@
+@use 'sass:map';
+@use '../variables/breakpoints' as *;
+
+/// Mobile-first media query by tier name: @include breakpoint('large') { ... }
+@mixin breakpoint($name) {
+  @if not map.has-key($breakpoints, $name) {
+    @error "Unknown breakpoint '#{$name}'. Use one of: #{map.keys($breakpoints)}.";
+  }
+
+  @media #{map.get($breakpoints, $name)} {
+    @content;
+  }
+}

@@ -1,0 +1,23 @@
+@use '../tokens' as *;
+
+// Small utilities. Keep this file small; it is not a utility framework.
+
+// Visually hidden but available to screen readers.
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Prices outside the ranking table: equal-width digits so columns of numbers line up.
+.tabular-nums {
+  font-family: $font-family-mono;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: $font-features-figures;
+}

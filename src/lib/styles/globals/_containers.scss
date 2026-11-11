@@ -1,0 +1,31 @@
+@use '../tokens' as *;
+
+// The page gutter. Exactly one of these may apply on any ancestor chain;
+// nesting two doubles the inset and breaks edge alignment.
+.container {
+  width: 100%;
+  max-width: $container-max-width;
+  margin-inline: auto;
+  padding-inline: $container-padding-sm;
+
+  @include breakpoint('medium') {
+    padding-inline: $container-padding-md;
+  }
+
+  @include breakpoint('large') {
+    padding-inline: $container-padding-lg;
+  }
+}
+
+// Width-only. No padding, which is why these nest safely inside .container.
+.container-medium {
+  width: 100%;
+  max-width: $container-medium-width;
+  margin-inline: auto;
+}
+
+.container-narrow {
+  width: 100%;
+  max-width: $container-narrow-width;
+  margin-inline: auto;
+}

@@ -1,0 +1,27 @@
+// Motion: short enter transitions for menus, popovers and dialogs. Closing is always instant, and nothing
+// animates for users who asked their system for less motion. No CSS output here; the keyframes live in
+// globals/_motion.scss.
+$duration-fast: 120ms; // menus and popovers
+$duration-base: 160ms; // dialogs
+$ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+/// Wraps rules that move things, so they only apply without a reduced-motion preference.
+@mixin motion-ok {
+  @media (prefers-reduced-motion: no-preference) {
+    @content;
+  }
+}
+
+/// Fades (and slightly scales) an element in when it appears.
+@mixin enter-fade-scale($duration: $duration-fast) {
+  @include motion-ok {
+    transform-origin: top;
+    animation: fade-scale-in $duration $ease-out;
+  }
+}
+
+@mixin enter-fade($duration: $duration-fast) {
+  @include motion-ok {
+    animation: fade-in $duration $ease-out;
+  }
+}

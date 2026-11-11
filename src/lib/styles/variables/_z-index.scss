@@ -1,0 +1,7 @@
+// Stacking order, lowest to highest. Use these instead of literal z-index values.
+$z-index-base: 0;
+$z-index-sticky: 10; // sticky table headers and cells inside the page
+$z-index-header: 20; // the app header stays above sticky content when scrolling
+$z-index-dropdown: 100;
+$z-index-dialog: 200;
+$z-index-toast: 300;

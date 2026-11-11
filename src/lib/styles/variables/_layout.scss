@@ -1,0 +1,12 @@
+@use 'spacing' as *;
+
+// Page gutter and content widths, consumed by globals/_containers.scss.
+$container-max-width: 1280px; // the seller ranking table
+$container-medium-width: 800px; // forms and prose
+$container-narrow-width: 420px;
+
+$layout-header-height: 56px;
+
+$container-padding-sm: $spacing-16;
+$container-padding-md: $spacing-24;
+$container-padding-lg: $spacing-32;

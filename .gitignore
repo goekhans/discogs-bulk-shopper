@@ -8,5 +8,12 @@ build/
 profile/
 .DS_Store
 
+# Adapter / Vite output
+.output
+.vercel
+.netlify
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
 .jumbo/
 .jumbo/jumbo.db

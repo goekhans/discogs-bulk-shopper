@@ -1,0 +1,91 @@
+// Colours are theme tokens: each role has a light and a dark value, emitted once as CSS custom properties
+// by globals/_theme.scss, which follows prefers-color-scheme. Components use only the role variables at
+// the bottom, never raw colours.
+//
+// Palette: warm neutral surfaces (paper and slate) with one accent, a burnt orange reminiscent of a record
+// label, reserved for the primary action, links and focus. Positive (green) marks a good deal or an item
+// that is available; negative (red) marks unavailable items and errors. Everything else is greyscale.
+
+$theme-light: (
+  'background': #f5f4f0,
+  'surface': #ffffff,
+  'surface-muted': #f8f7f4,
+  'surface-hover': #eceae4,
+  'surface-strong': #e6e4dd,
+  'border': #dcdad3,
+  'control-border': #83817a,
+  'divider': #ebe9e3,
+  'text': #1a1917,
+  'text-muted': #5f5d57,
+  'icon-muted': #7c7a73,
+  'accent': #c2410c,
+  'accent-hover': #9a3412,
+  'accent-subtle': #fdeee4,
+  'on-accent': #ffffff,
+  'positive': #166534,
+  'positive-subtle': #e3f3e8,
+  'negative': #b42318,
+  'negative-subtle': #fdecea,
+  'selection': #fde4d3,
+  'tooltip': #1a1917,
+  'on-tooltip': #f5f4f0,
+  'shadow': rgb(26 25 23 / 14%),
+  'backdrop': rgb(26 25 23 / 40%),
+  'edge': transparent
+);
+
+$theme-dark: (
+  'background': #121211,
+  'surface': #1c1b1a,
+  'surface-muted': #232221,
+  'surface-hover': #2e2d2b,
+  'surface-strong': #2a2927,
+  'border': #33322f,
+  'control-border': #74726c,
+  'divider': #292826,
+  'text': #f2f0ea,
+  'text-muted': #a8a69f,
+  'icon-muted': #8b8982,
+  'accent': #fb923c,
+  'accent-hover': #fdba74,
+  'accent-subtle': #3a2416,
+  'on-accent': #1a1917,
+  'positive': #4ade80,
+  'positive-subtle': #11301d,
+  'negative': #ff6b5e,
+  'negative-subtle': #3a1a17,
+  'selection': #4a2a16,
+  'tooltip': #f2f0ea,
+  'on-tooltip': #1a1917,
+  'shadow': rgb(0 0 0 / 55%),
+  'backdrop': rgb(0 0 0 / 65%),
+  'edge': rgb(255 255 255 / 5%)
+);
+
+// Roles, as used by components. Each points to the current theme's value.
+$color-background: var(--color-background);
+$color-surface: var(--color-surface);
+$color-surface-muted: var(--color-surface-muted);
+$color-surface-hover: var(--color-surface-hover);
+$color-surface-strong: var(--color-surface-strong);
+$color-border: var(--color-border);
+$color-control-border: var(--color-control-border);
+$color-divider: var(--color-divider);
+$color-text: var(--color-text);
+$color-text-muted: var(--color-text-muted);
+$color-icon-muted: var(--color-icon-muted);
+$color-accent: var(--color-accent);
+$color-accent-hover: var(--color-accent-hover);
+$color-accent-subtle: var(--color-accent-subtle);
+$color-on-accent: var(--color-on-accent);
+$color-positive: var(--color-positive);
+$color-positive-subtle: var(--color-positive-subtle);
+$color-negative: var(--color-negative);
+$color-negative-subtle: var(--color-negative-subtle);
+$color-selection: var(--color-selection);
+$color-tooltip: var(--color-tooltip);
+$color-on-tooltip: var(--color-on-tooltip);
+$color-shadow: var(--color-shadow);
+$color-backdrop: var(--color-backdrop);
+$color-edge: var(--color-edge);
+$color-focus: $color-accent;

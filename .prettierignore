@@ -1,0 +1,25 @@
+# Build output and caches
+.svelte-kit
+build
+node_modules
+.cache
+profile
+
+# Lockfiles
+package-lock.json
+
+# Agent tooling (managed by Jumbo, not formatted by us)
+.jumbo
+.claude
+.agents
+.codex
+.cursor
+.github
+.opencode
+.vibe
+
+# Agent instruction files (managed by Jumbo)
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+JUMBO.md
