@@ -7,3 +7,6 @@ node_modules/
 build/
 profile/
 .DS_Store
+
+.jumbo/
+.jumbo/jumbo.db
